@@ -1,4 +1,5 @@
-(ns debugger.core)
+(ns debugger.core
+  (:require clojure.reflect))
 
 (declare ^:dynamic *locals*)
 
@@ -8,6 +9,13 @@
      (do
        (println '~x "->" x#)
        x#)))
+
+(defn public-inspect [x]
+  (clojure.pprint/print-table
+    (filter #(contains? (:flags %) :public)
+            (map
+              #(apply dissoc % [:exception-types])
+              (:members (clojure.reflect/reflect x))))))
 
 (defn prompt-fn []
   ;; (printf "%s=> " (ns-name *ns*))
@@ -23,17 +31,22 @@
       `(let ~(vec (mapcat #(list % `(*locals* '~%)) (keys locals)))
          ~form))))
 
-(defn eval-fn [cont-fn form]
+(defn eval-fn [env-keys env-vals cont-fn form]
+  ;; (binding [*locals* locals]
+  ;;   (eval
   (do
     (println "> Start eval-fn")
     (case (clojure.string/trim (str form))
       "(c)" (do (println "> Eval-fn continues")
                       (cont-fn))
-      ;; "(e)" (do (println "> Eval-fn environment")
-      ;;                 *locals*)
+      "(e)" (do (println "> Eval-fn env-keys")
+                      env-keys)
+      "(v)" (do (println "> Eval-fn env-vals")
+                env-vals)
       (do
         (println "> Eval-fn got" (pr-str form))
         (jeval form)))))
+  ;; ))
 
 (defn read-fn [request-prompt request-exit]
   (or ({:line-start request-prompt :stream-end request-exit}
@@ -56,14 +69,18 @@
 
 
 (defmacro break [& body]
-  (binding [
-        ;environment (vec (map (fn [sym] `(quote ~sym)) (keys &env)))
-        *locals* (local-bindings)
+  (let [
+        ;; environment (vec (map (fn [sym] `(quote ~sym)) (keys &env)))
+        env-keys (vec (mapcat (fn [sym] `[(quote ~sym)]) (keys &env)))
+        ;; environment (local-bindings)
+        fval (.sym (first (vals &env)))
         ]
-    (println "> *locals*" *locals*)
-    ;; (println "> Env:" environment)
+    ;; (println "> local-bindings:" )
+    ;; (println "> Env keys:" env-keys)
     `(let [cont-fn# #(~body)
-           eval-with-cont-fn# (partial eval-fn cont-fn#)
+           env-vals# ~fval
+           ;; a# (println "> Env pre fn vals:" x)
+           eval-with-cont-fn# (partial eval-fn ~env-keys env-vals# cont-fn#)
            ;; s# (println "> x" (class x))
            ]
        (clojure.main/repl
