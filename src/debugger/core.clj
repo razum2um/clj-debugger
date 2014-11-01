@@ -53,7 +53,8 @@
               (help-message)
               (println))
       "(w)" (do
-              (println "\n" source "\n"))
+              (println)
+              (println source "\n"))
       "(l)" (do
               (println (locals-fn)))
       "(c)" (do
@@ -88,7 +89,7 @@
 
 
 (defn- unmangle [s]
-  (clojure.string/replace s #"^(.+)\$(.+)\W.*$" (fn [[_ ns-name fn-name]] (str ns-name "/" fn-name))))
+  (clojure.string/replace s #"^(.+)\$(.+)\W?.*$" (fn [[_ ns-name fn-name]] (str ns-name "/" fn-name))))
 
 (defn- format-line-with-line-numbers [macro-line line line-number]
   (if (= macro-line line-number)
@@ -131,14 +132,10 @@
          (cont-fn#)))))
 
 (defn foo [& args]
-  (let [
-        w '(9 8)
-        x "world"
-        y [1 2]
+  (let [x "world"
+        y '(1 2)
         z (Object.)
-        ret (dbg (break
-               (do (dbg (+ 1 42))
-                   5)))]
+        ret (break (inc 42))]
     (println "Exit foo with" ret)))
 
 (defn bar [multi]
