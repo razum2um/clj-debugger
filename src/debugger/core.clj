@@ -28,25 +28,27 @@
 
 (defn eval-fn [return-val env-fn cont-fn form]
   (do
-    (println "> Start eval-fn")
+    ;; (println "> Start eval-fn")
     (case (clojure.string/trim (str form))
-      "(c)" (do (println "> Eval-fn continues")
-                (reset! return-val (cont-fn)))
-      "(e)" (do (println "> Eval-fn env-keys")
-                (env-fn))
+      "(c)" (do
+              ;; (println "> Eval-fn continues")
+              (reset! return-val (cont-fn)))
+      "(e)" (do
+              ;; (println "> Eval-fn env-keys")
+              (env-fn))
       (do
-        (println "> Eval-fn got" (pr-str form))
+        ;; (println "> Eval-fn got" (pr-str form))
         (reset!
           return-val
           (binding [*locals* (env-fn)]
-            (jeval
+            (eval
               `(let ~(vec (mapcat #(list % `(*locals* '~%)) (keys *locals*)))
                  ~form))))))))
 
 (defn read-fn [request-prompt request-exit]
   ;; (println "> Read-fn with" (pr-str request-prompt) "and" (pr-str request-exit))
   (or ({:line-start request-prompt :stream-end request-exit}
-       (dbg (clojure.main/skip-whitespace *in*)))
+       (clojure.main/skip-whitespace *in*))
       (let [input (read)]
         (clojure.main/skip-if-eol *in*)
         input)))
