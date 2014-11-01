@@ -34,8 +34,8 @@ nil
 break user=> (l)
 {z #<Object java.lang.Object@6102a1f3>, y (1 2), x world, args (2)}
 nil
-break user=> z
-#<Object java.lang.Object@6102a1f3>
+break user=> (c)
+43
 break user=> (first y)
 1
 break user=> Exit foo with 1
