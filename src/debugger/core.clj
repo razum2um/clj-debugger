@@ -42,10 +42,11 @@
                 )
       (do
         (println "> Eval-fn got" (pr-str form))
-        (println "> Env in eval:" (pr-str (env-fn)) "types:" (map (comp pr-str class) (env-fn)))
-        (jeval
-          `(let [~'s 1]
-            ~form))
+        ;; (println "> Env in eval:" (pr-str (env-fn)) "types:" (map (comp pr-str class) (env-fn)))
+        (binding [*locals* (env-fn)]
+          (jeval
+            `(let ~(vec (mapcat #(list % `(*locals* '~%)) (keys *locals*)))
+               ~form)))
         ;; (jeval
         ;;   `(let [s 1]
         ;;     ~form))
@@ -74,7 +75,7 @@
 
 (defmacro break [& body]
   (let [
-        env (vec (mapcat (fn [[sym bind]] [`(quote ~sym) (.sym bind)]) &env))
+        env (into {} (map (fn [[sym bind]] [`(quote ~sym) (.sym bind)]) &env))
         ]
     `(let [
            cont-fn# #(identity ~body)
