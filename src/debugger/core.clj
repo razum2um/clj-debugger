@@ -10,6 +10,11 @@
        (println '~x "->" x#)
        x#)))
 
+(defn object->file [^String file obj]
+  (with-open [outp (java.io.ObjectOutputStream.
+                     (java.io.FileOutputStream. file))]
+    (.writeObject outp obj)))
+
 (defn public-inspect [x]
   (clojure.pprint/print-table
     (filter #(contains? (:flags %) :public)
@@ -36,22 +41,15 @@
     (println "> Start eval-fn")
     (case (clojure.string/trim (str form))
       "(c)" (do (println "> Eval-fn continues")
-                      (cont-fn))
+                (cont-fn))
       "(e)" (do (println "> Eval-fn env-keys")
-                (identity (env-fn))
-                )
+                (env-fn))
       (do
         (println "> Eval-fn got" (pr-str form))
-        ;; (println "> Env in eval:" (pr-str (env-fn)) "types:" (map (comp pr-str class) (env-fn)))
         (binding [*locals* (env-fn)]
           (jeval
             `(let ~(vec (mapcat #(list % `(*locals* '~%)) (keys *locals*)))
-               ~form)))
-        ;; (jeval
-        ;;   `(let [s 1]
-        ;;     ~form))
-        ;; (jeval `(let ~(env-fn) ~form))
-      ))))
+               ~form)))))))
 
 (defn read-fn [request-prompt request-exit]
   (or ({:line-start request-prompt :stream-end request-exit}
@@ -78,8 +76,7 @@
         env (into {} (map (fn [[sym bind]] [`(quote ~sym) (.sym bind)]) &env))
         ]
     `(let [
-           cont-fn# #(identity ~body)
-           ;; s# (println "> Env in macro:" (pr-str (class (last ~env))))
+           cont-fn# #(identity ~@body)
            env-fn# #(identity ~env)
            eval-with-cont-fn# (partial eval-fn env-fn# cont-fn#)
            ]
@@ -96,8 +93,8 @@
         y [1 2]
         z (Object.)
         ]
-    (break
-      (println "hello," x)
-      (dbg (+ 1 2)))
+    (dbg (break
+      (do (dbg (+ 1 42))
+          5)))
     (println "Exit foo")))
 
