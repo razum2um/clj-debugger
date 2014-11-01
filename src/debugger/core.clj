@@ -26,34 +26,27 @@
   ;; (printf "%s=> " (ns-name *ns*))
   )
 
-(defmacro local-bindings []
-  (let [symbols (keys &env)]
-    (zipmap (map (fn [sym] `(quote ~sym)) symbols) symbols)))
-
-(defn eval-with-locals [locals form]
-  (binding [*locals* locals]
-    (eval
-      `(let ~(vec (mapcat #(list % `(*locals* '~%)) (keys locals)))
-         ~form))))
-
-(defn eval-fn [env-fn cont-fn form]
+(defn eval-fn [return-val env-fn cont-fn form]
   (do
     (println "> Start eval-fn")
     (case (clojure.string/trim (str form))
       "(c)" (do (println "> Eval-fn continues")
-                (cont-fn))
+                (reset! return-val (cont-fn)))
       "(e)" (do (println "> Eval-fn env-keys")
                 (env-fn))
       (do
         (println "> Eval-fn got" (pr-str form))
-        (binding [*locals* (env-fn)]
-          (jeval
-            `(let ~(vec (mapcat #(list % `(*locals* '~%)) (keys *locals*)))
-               ~form)))))))
+        (reset!
+          return-val
+          (binding [*locals* (env-fn)]
+            (jeval
+              `(let ~(vec (mapcat #(list % `(*locals* '~%)) (keys *locals*)))
+                 ~form))))))))
 
 (defn read-fn [request-prompt request-exit]
+  ;; (println "> Read-fn with" (pr-str request-prompt) "and" (pr-str request-exit))
   (or ({:line-start request-prompt :stream-end request-exit}
-       (clojure.main/skip-whitespace *in*))
+       (dbg (clojure.main/skip-whitespace *in*)))
       (let [input (read)]
         (clojure.main/skip-if-eol *in*)
         input)))
@@ -76,15 +69,18 @@
         env (into {} (map (fn [[sym bind]] [`(quote ~sym) (.sym bind)]) &env))
         ]
     `(let [
+           return-val# (atom nil)
            cont-fn# #(identity ~@body)
            env-fn# #(identity ~env)
-           eval-with-cont-fn# (partial eval-fn env-fn# cont-fn#)
+           eval-with-return-val-env-fn-cont-fn# (partial eval-fn return-val# env-fn# cont-fn#)
+           ;; read-with-return-val# (partial read-fn return-val#)
            ]
        (clojure.main/repl
          :prompt prompt-fn
-         :eval eval-with-cont-fn#
+         :eval eval-with-return-val-env-fn-cont-fn#
          :read read-fn
-         :caught caught-fn))))
+         :caught caught-fn)
+       (deref return-val#))))
 
 (defn foo [& args]
   (let [
@@ -92,9 +88,8 @@
         x "world"
         y [1 2]
         z (Object.)
-        ]
-    (dbg (break
-      (do (dbg (+ 1 42))
-          5)))
-    (println "Exit foo")))
+        ret (dbg (break
+               (do (dbg (+ 1 42))
+                   5)))]
+    (println "Exit foo with" ret)))
 
