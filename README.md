@@ -4,6 +4,8 @@ The missing tool in the ecosystem
 
 ## Usage
 
+[![Clojars Project](http://clojars.org/debugger/latest-version.svg)](http://clojars.org/debugger)
+
 ```
 user=> (debugger.core/foo 2)
 
