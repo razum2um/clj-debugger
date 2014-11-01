@@ -31,22 +31,26 @@
       `(let ~(vec (mapcat #(list % `(*locals* '~%)) (keys locals)))
          ~form))))
 
-(defn eval-fn [env-keys env-vals cont-fn form]
-  ;; (binding [*locals* locals]
-  ;;   (eval
+(defn eval-fn [env-fn cont-fn form]
   (do
     (println "> Start eval-fn")
     (case (clojure.string/trim (str form))
       "(c)" (do (println "> Eval-fn continues")
                       (cont-fn))
       "(e)" (do (println "> Eval-fn env-keys")
-                      env-keys)
-      "(v)" (do (println "> Eval-fn env-vals")
-                env-vals)
+                (identity (env-fn))
+                )
       (do
         (println "> Eval-fn got" (pr-str form))
-        (jeval form)))))
-  ;; ))
+        (println "> Env in eval:" (pr-str (env-fn)) "types:" (map (comp pr-str class) (env-fn)))
+        (jeval
+          `(let [~'s 1]
+            ~form))
+        ;; (jeval
+        ;;   `(let [s 1]
+        ;;     ~form))
+        ;; (jeval `(let ~(env-fn) ~form))
+      ))))
 
 (defn read-fn [request-prompt request-exit]
   (or ({:line-start request-prompt :stream-end request-exit}
@@ -70,18 +74,13 @@
 
 (defmacro break [& body]
   (let [
-        ;; environment (vec (map (fn [sym] `(quote ~sym)) (keys &env)))
-        env-keys (vec (mapcat (fn [sym] `[(quote ~sym)]) (keys &env)))
-        ;; environment (local-bindings)
-        fval (.sym (first (vals &env)))
+        env (vec (mapcat (fn [[sym bind]] [`(quote ~sym) (.sym bind)]) &env))
         ]
-    ;; (println "> local-bindings:" )
-    ;; (println "> Env keys:" env-keys)
-    `(let [cont-fn# #(~body)
-           env-vals# ~fval
-           ;; a# (println "> Env pre fn vals:" x)
-           eval-with-cont-fn# (partial eval-fn ~env-keys env-vals# cont-fn#)
-           ;; s# (println "> x" (class x))
+    `(let [
+           cont-fn# #(identity ~body)
+           ;; s# (println "> Env in macro:" (pr-str (class (last ~env))))
+           env-fn# #(identity ~env)
+           eval-with-cont-fn# (partial eval-fn env-fn# cont-fn#)
            ]
        (clojure.main/repl
          :prompt prompt-fn
@@ -90,7 +89,12 @@
          :caught caught-fn))))
 
 (defn foo [& args]
-  (let [x "world"]
+  (let [
+        w '(9 8)
+        x "world"
+        y [1 2]
+        z (Object.)
+        ]
     (break
       (println "hello," x)
       (dbg (+ 1 2)))
