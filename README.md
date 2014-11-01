@@ -42,7 +42,7 @@ nil
 
 ## Acknoledgements
 
-- @richhickey for `clojure.mail/repl`
+- @richhickey for `clojure.main/repl`
 - @GeorgeJahad for the lesson [how to preserve locals](https://github.com/GeorgeJahad/debug-repl/blob/master/src/alex_and_georges/debug_repl.clj#L68)
 
 ## License
