@@ -10,41 +10,63 @@
        (println '~x "->" x#)
        x#)))
 
-(defn object->file [^String file obj]
-  (with-open [outp (java.io.ObjectOutputStream.
-                     (java.io.FileOutputStream. file))]
-    (.writeObject outp obj)))
-
-(defn public-inspect [x]
-  (clojure.pprint/print-table
-    (filter #(contains? (:flags %) :public)
-            (map
-              #(apply dissoc % [:exception-types])
-              (:members (clojure.reflect/reflect x))))))
-
 (defn prompt-fn []
-  ;; (printf "%s=> " (ns-name *ns*))
-  )
+  (printf "break %s=> " (ns-name *ns*)))
 
-(defn eval-fn [return-val env-fn cont-fn form]
+(defn print-table
+  ([ks rows]
+     (when (seq rows)
+       (let [widths (map
+                     (fn [k]
+                       (apply max (count (str k)) (map #(count (str (get % k))) rows)))
+                     ks)
+             spacers (map #(apply str (repeat % "-")) widths)
+             fmts (map #(str "%-" % "s") widths)
+             fmt-row (fn [leader divider trailer row]
+                       (str leader
+                            (apply str (interpose divider
+                                                  (for [[col fmt] (map vector (map #(get row %) ks) fmts)]
+                                                    (format fmt (str col)))))
+                            trailer))]
+         (println)
+         (doseq [row rows]
+           (println (fmt-row " " " " " " row))))))
+  ([rows] (print-table (keys (first rows)) rows)))
+
+(defn help-message []
+  (print-table
+    [:cmd :help]
+    [{:cmd "(h)" :help "prints this help"}
+     {:cmd "(w)" :help "prints code around breakpoint"}
+     {:cmd "(l)" :help "prints locals"}
+     {:cmd "(c)" :help "continues execution and preserves the result"}
+     {:cmd "^D"  :help "type Ctrl-D to exit break-repl and pass last result further"}
+     {:cmd ""    :help ""}
+     {:cmd ""    :help "you can also access locals directly and build sexp with them"}
+     {:cmd ""    :help "any last execution result (but `nil`) before exit will be passed further"}
+     {:cmd ""    :help "if last result is `nil` execution will continue normally"}]))
+
+(defn eval-fn [return-val cached-cont-val locals-fn cont-fn source form]
   (do
-    ;; (println "> Start eval-fn")
     (case (clojure.string/trim (str form))
+      "(h)" (do
+              (help-message)
+              (println))
+      "(w)" (do
+              (println "\n" source "\n"))
+      "(l)" (do
+              (println (locals-fn)))
       "(c)" (do
-              ;; (println "> Eval-fn continues")
-              (reset! return-val (cont-fn)))
-      "(e)" (do
-              ;; (println "> Eval-fn env-keys")
-              (env-fn))
+              (reset! cached-cont-val (cont-fn)))
       (do
-        ;; (println "> Eval-fn got" (pr-str form))
         (reset!
           return-val
-          (binding [*locals* (env-fn)]
+          (binding [*locals* (locals-fn)]
             (eval
               `(let ~(vec (mapcat #(list % `(*locals* '~%)) (keys *locals*)))
                  ~form))))))))
 
+;; TODO use readline/jline
 (defn read-fn [request-prompt request-exit]
   ;; (println "> Read-fn with" (pr-str request-prompt) "and" (pr-str request-exit))
   (or ({:line-start request-prompt :stream-end request-exit}
@@ -65,24 +87,48 @@
                       (str " " (if el (clojure.main/stack-element-str el) "[trace missing]"))))))))
 
 
+(defn- unmangle [s]
+  (clojure.string/replace s #"^(.+)\$(.+)\W.*$" (fn [[_ ns-name fn-name]] (str ns-name "/" fn-name))))
+
+(defn- format-line-with-line-numbers [macro-line line line-number]
+  (if (= macro-line line-number)
+    (str "=> " line-number ": " line)
+    (str "   " line-number ": " line)))
 
 (defmacro break [& body]
-  (let [
-        env (into {} (map (fn [[sym bind]] [`(quote ~sym) (.sym bind)]) &env))
-        ]
-    `(let [
-           return-val# (atom nil)
+  (let [env (into {} (map (fn [[sym bind]] [`(quote ~sym) (.sym bind)]) &env))
+        ;; _ (println "form=" &form "meta" (meta &form))
+        macro-line (:line (meta &form))]
+    `(let [return-val# (atom nil)
+           cached-cont-val# (atom nil)
            cont-fn# #(identity ~@body)
-           env-fn# #(identity ~env)
-           eval-with-return-val-env-fn-cont-fn# (partial eval-fn return-val# env-fn# cont-fn#)
-           ;; read-with-return-val# (partial read-fn return-val#)
-           ]
+           locals-fn# #(identity ~env)
+
+           path-to-src# (-> (java.io.File. ".") .getCanonicalPath)
+           outer-fn-name# (-> (Throwable.) .getStackTrace first .getClassName unmangle symbol)
+           outer-fn-meta# (-> outer-fn-name# find-var meta)
+           outer-fn-line# (:line outer-fn-meta#)
+           outer-fn-path# (and outer-fn-meta# (str path-to-src# "/src/" (:file outer-fn-meta#) ":" outer-fn-line#))
+
+           outer-fn-source# (clojure.string/trim (clojure.repl/source-fn outer-fn-name#))
+           source# (clojure.string/join
+                     "\n"
+                     (mapv (partial format-line-with-line-numbers ~macro-line)
+                           (or (clojure.string/split outer-fn-source# #"\n") [])
+                           (map (partial + outer-fn-line#) (range))))
+
+           macro-eval-fn# (partial eval-fn return-val# cached-cont-val# locals-fn# cont-fn# source#)]
+       (println "\nBreak from:" outer-fn-path# "(type \"(h)\" for help)\n")
+       (println source# "\n")
        (clojure.main/repl
          :prompt prompt-fn
-         :eval eval-with-return-val-env-fn-cont-fn#
+         :eval macro-eval-fn#
          :read read-fn
          :caught caught-fn)
-       (deref return-val#))))
+       (or
+         (deref return-val#)
+         (deref cached-cont-val#)
+         (cont-fn#)))))
 
 (defn foo [& args]
   (let [
@@ -94,4 +140,12 @@
                (do (dbg (+ 1 42))
                    5)))]
     (println "Exit foo with" ret)))
+
+(defn bar [multi]
+  (let [my-fn (dbg (break (fn inner [x] (* multi x))))]
+    (map my-fn (range 2))))
+
+(defn qux [multi]
+  (let [my-fn (fn inner [x] (break (* multi x)))]
+    (map my-fn (range 2))))
 
