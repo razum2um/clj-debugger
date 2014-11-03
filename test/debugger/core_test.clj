@@ -1,5 +1,6 @@
 (ns debugger.core-test
   (:require [clojure.test :refer :all]
+            [clojure.walk :refer [postwalk-demo]]
             [debugger.core :refer :all]))
 
 (deftest a-test

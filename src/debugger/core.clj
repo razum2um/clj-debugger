@@ -12,9 +12,9 @@
        (println '~x "->" x#)
        x#)))
 
-(defn prompt-fn [signal-val]
+(defn prompt-fn [fn-symbol break-line signal-val]
   (if-not @signal-val
-    (printf "break %s=> " (ns-name *ns*))))
+    (printf "%s:%s=> " fn-symbol break-line)))
 
 (defn print-table
   ([ks rows]
@@ -83,7 +83,6 @@
 
 (defn print-short-source [break-line fn-symbol]
   (let [fn-meta (-> fn-symbol find-var meta)
-        head (str "\nin: " (:ns fn-meta) "/" (:name fn-meta) " " (pr-str (:arglists fn-meta)) "\n")
         format-fn (partial format-line-with-line-numbers true break-line)
         lines (map-numbered-source-lines format-fn fn-symbol)
         ;; _ (println "!!!" (count lines))
@@ -95,9 +94,8 @@
         (print-full-source break-line fn-symbol)
       :else
         (do
-          (println head)
-          (println (clojure.string/join "\n" (filter some? lines)))
-          (println)))))
+          (println)
+          (println (clojure.string/join "\n" (filter some? lines)) "\n")))))
 
 
 (defn eval-fn [break-ns break-line fn-symbol signal-val return-val cached-cont-val locals-fn cont-fn form]
@@ -178,15 +176,16 @@
 
            path-to-src# (-> (java.io.File. ".") .getCanonicalPath)
            outer-fn-symbol# (-> (Throwable.) .getStackTrace first .getClassName unmangle symbol)
-           s# (println "!!!" outer-fn-symbol#)
+           ;; s# (println "!!!" outer-fn-symbol#)
            outer-fn-meta# (-> outer-fn-symbol# find-var meta)
            outer-fn-path# (if outer-fn-meta#
                             (str path-to-src# "/src/" (:file outer-fn-meta#) ":" (:line outer-fn-meta#))
                             (no-sources-found outer-fn-symbol#))
 
-           macro-eval-fn# (partial eval-fn (ns-name (or (:ns outer-fn-meta#) *ns*)) ~break-line outer-fn-symbol# signal-val# return-val# cached-cont-val# locals-fn# cont-fn#)
+           macro-ns# (ns-name (or (:ns outer-fn-meta#) *ns*))
+           macro-eval-fn# (partial eval-fn macro-ns# ~break-line outer-fn-symbol# signal-val# return-val# cached-cont-val# locals-fn# cont-fn#)
            macro-read-fn# (partial read-fn signal-val#)
-           macro-prompt-fn# (partial prompt-fn signal-val#)]
+           macro-prompt-fn# (partial prompt-fn outer-fn-symbol# ~break-line signal-val#)]
 
        (println "\nBreak from:" outer-fn-path# "(type \"(help)\" for help)")
        (print-short-source ~break-line outer-fn-symbol#)
