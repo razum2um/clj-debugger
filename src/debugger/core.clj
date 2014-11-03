@@ -84,9 +84,7 @@
 (defn print-short-source [break-line fn-symbol]
   (let [fn-meta (-> fn-symbol find-var meta)
         format-fn (partial format-line-with-line-numbers true break-line)
-        lines (map-numbered-source-lines format-fn fn-symbol)
-        ;; _ (println "!!!" (count lines))
-        ]
+        lines (map-numbered-source-lines format-fn fn-symbol)]
     (cond
       (= 0 (count lines))
         (println (no-sources-found fn-symbol))
@@ -176,7 +174,6 @@
 
            path-to-src# (-> (java.io.File. ".") .getCanonicalPath)
            outer-fn-symbol# (-> (Throwable.) .getStackTrace first .getClassName unmangle symbol)
-           ;; s# (println "!!!" outer-fn-symbol#)
            outer-fn-meta# (-> outer-fn-symbol# find-var meta)
            outer-fn-path# (if outer-fn-meta#
                             (str path-to-src# "/src/" (:file outer-fn-meta#) ":" (:line outer-fn-meta#))

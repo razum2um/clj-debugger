@@ -12,7 +12,7 @@
 (defn foo [& args]
   (let [a [1 2]
         b #{3 4}
-        c {:k "v"}
+        h {:k "v"}
         d nil
         e (fn [] nil)
         x "world"
