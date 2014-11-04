@@ -179,7 +179,7 @@
         ;; _ (println "!!! meta of body" (meta body))
         ]
     `(let [
-           s# (println "!!! in macro on line=" ~@body)
+           ;; s# (println "!!! in macro on line=" ~@body)
            macro-line# (or (:break-line ~@body) ~break-line 0)
            cont-fn# #(identity ~@body)
            locals-fn# #(identity (or (:env ~@body) ~env))
