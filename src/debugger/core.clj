@@ -62,11 +62,13 @@
 
 
 (defn- map-numbered-source-lines [f fn-symbol]
-  (let [fn-source (clojure.repl/source-fn fn-symbol)
+  (let [
+        fn-source (clojure.repl/source-fn fn-symbol)
         fn-source-lines (or (clojure.string/split fn-source #"\n") [])
         fn-meta (-> fn-symbol find-var meta)
         fn-source-start-line (or (:line fn-meta) 0)
-        line-numbers (map (partial + fn-source-start-line) (range))]
+        line-numbers (map (partial + fn-source-start-line) (range))
+        ]
     (mapv f fn-source-lines line-numbers)))
 
 
@@ -82,9 +84,11 @@
 
 
 (defn print-short-source [break-line fn-symbol]
-  (let [fn-meta (-> fn-symbol find-var meta)
+  (let [
+        fn-meta (-> fn-symbol find-var meta)
         format-fn (partial format-line-with-line-numbers true break-line)
-        lines (map-numbered-source-lines format-fn fn-symbol)]
+        lines (map-numbered-source-lines format-fn fn-symbol)
+        ]
     (cond
       (= 0 (count lines))
         (println (no-sources-found fn-symbol))
@@ -163,14 +167,21 @@
 
 
 (defmacro break [& body]
-  (let [env (into {} (map (fn [[sym bind]] [`(quote ~sym) (.sym bind)]) &env))
-        ;; _ (println "form=" &form "meta" (meta &form))
-        break-line (:line (meta &form))]
-    `(let [return-val# (atom nil)
+  (let [
+        env (into {} (map (fn [[sym bind]] [`(quote ~sym) (.sym bind)]) &env))
+        break-line (:line (meta &form))
+        ;; _ (println "!!! in pre macro for" &form)
+        ;; _ (println "!!! meta of body" (meta body))
+        ]
+    `(let [
+           s# (println "!!! in macro on line=" ~@body)
+           macro-line# (or (:break-line ~@body) ~break-line 0)
+           cont-fn# #(identity ~@body)
+           locals-fn# #(identity (or (:env ~@body) ~env))
+
+           return-val# (atom nil)
            cached-cont-val# (atom nil)
            signal-val# (atom nil)
-           cont-fn# #(identity ~@body)
-           locals-fn# #(identity ~env)
 
            path-to-src# (-> (java.io.File. ".") .getCanonicalPath)
            outer-fn-symbol# (-> (Throwable.) .getStackTrace first .getClassName unmangle symbol)
@@ -179,13 +190,15 @@
                             (str path-to-src# "/src/" (:file outer-fn-meta#) ":" (:line outer-fn-meta#))
                             (no-sources-found outer-fn-symbol#))
 
+
            macro-ns# (ns-name (or (:ns outer-fn-meta#) *ns*))
            macro-eval-fn# (partial eval-fn macro-ns# ~break-line outer-fn-symbol# signal-val# return-val# cached-cont-val# locals-fn# cont-fn#)
            macro-read-fn# (partial read-fn signal-val#)
-           macro-prompt-fn# (partial prompt-fn outer-fn-symbol# ~break-line signal-val#)]
+           macro-prompt-fn# (partial prompt-fn outer-fn-symbol# macro-line# signal-val#)
 
-       (println "\nBreak from:" outer-fn-path# "(type \"(help)\" for help)")
-       (print-short-source ~break-line outer-fn-symbol#)
+           ]
+
+       (print-short-source macro-line# outer-fn-symbol#)
        (clojure.main/repl
          :prompt macro-prompt-fn#
          :eval macro-eval-fn#
@@ -196,3 +209,29 @@
          (deref cached-cont-val#)
          (cont-fn#)))))
 
+(defmacro break-catch [& body]
+  (let [
+        env (into {} (map (fn [[sym bind]] [`(quote ~sym) (.sym bind)]) &env))
+        break-line (:line (meta &form))
+        ;; _ (println "!!! in pre catch-macro for" (meta &form))
+        ]
+  `(try
+    (do ~@body)
+    (catch Exception ~'e
+      ;; ~(macroexpand-1 '(break {:a 1}))
+      ;; (break #(fn [] ~@body))
+      (break {:break-line ~break-line :env ~env})
+      ))))
+
+;; (defmacro m1 [& body]
+;;   `(clojure.repl/source body))
+;;
+;; ;; (m1 (list 2 1)) is ok
+;;
+;; (defmacro m2 [& body]
+;;   `(try
+;;      (do ~@body)
+;;      (catch Exception ~'e
+;;        (m1 ~@body))))
+;;
+;; ;; (m2 (list 2 {})) without fail

@@ -28,3 +28,12 @@
 (defn qux [multi]
   (let [my-fn (fn inner [x] (break (* multi x)))]
     (map my-fn (range 2))))
+
+(defn err []
+  (let [i (rand-int 10)]
+    (println "Err exited with"
+             (break-catch
+               (/ i 0)
+               ;; (catch Exception e (break e))
+               ))))
+
