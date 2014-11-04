@@ -119,7 +119,8 @@
                         (print-full-source break-line fn-symbol))
 
       #"\(l\)|\(locals\)" (do
-                            (println (locals-fn)))
+                            (binding [*print-length* 5]
+                              (println (locals-fn))))
 
       #"\(c\)|\(continue\)" (do
                               (reset! cached-cont-val (cont-fn)))
