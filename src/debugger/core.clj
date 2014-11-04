@@ -64,7 +64,7 @@
 (defn safe-find-var [sym]
   "No raise of not found ns of symbol"
   (and (-> sym namespace symbol find-ns)
-       (-> sym find-var meta)))
+       (-> sym find-var)))
 
 (defn- map-numbered-source-lines [f fn-symbol]
   (let [
@@ -181,7 +181,7 @@
     `(let [
            ;; s# (println "!!! in macro on line=" ~@body)
            macro-line# (or (:break-line ~@body) ~break-line 0)
-           cont-fn# #(identity ~@body)
+           cont-fn# #(identity (or (:exception ~@body) ~@body))
            locals-fn# #(identity (or (:env ~@body) ~env))
 
            return-val# (atom nil)
@@ -223,20 +223,5 @@
   `(try
     (do ~@body)
     (catch Exception ~'e
-      ;; ~(macroexpand-1 '(break {:a 1}))
-      ;; (break #(fn [] ~@body))
-      (break {:break-line ~break-line :env ~env})
-      ))))
+      (break {:break-line ~break-line :env ~env :exception ~'e})))))
 
-;; (defmacro m1 [& body]
-;;   `(clojure.repl/source body))
-;;
-;; ;; (m1 (list 2 1)) is ok
-;;
-;; (defmacro m2 [& body]
-;;   `(try
-;;      (do ~@body)
-;;      (catch Exception ~'e
-;;        (m1 ~@body))))
-;;
-;; ;; (m2 (list 2 {})) without fail
