@@ -30,10 +30,8 @@
     (map my-fn (range 2))))
 
 (defn err []
-  (let [i (rand-int 10)]
-    (println "Err exited with"
-             (break-catch
-               (/ i 0)
-               ;; (catch Exception e (break e))
-               ))))
+  (let [i 42]
+    (println
+      "Err exited with"
+      (break-catch (/ i 0)))))
 
