@@ -61,11 +61,16 @@
     :else (str "   " line-number ": " line)))
 
 
+(defn safe-find-var [sym]
+  "No raise of not found ns of symbol"
+  (and (-> sym namespace symbol find-ns)
+       (-> sym find-var meta)))
+
 (defn- map-numbered-source-lines [f fn-symbol]
   (let [
         fn-source (clojure.repl/source-fn fn-symbol)
-        fn-source-lines (or (clojure.string/split fn-source #"\n") [])
-        fn-meta (-> fn-symbol find-var meta)
+        fn-source-lines (if fn-source (clojure.string/split fn-source #"\n") [])
+        fn-meta (-> fn-symbol safe-find-var meta)
         fn-source-start-line (or (:line fn-meta) 0)
         line-numbers (map (partial + fn-source-start-line) (range))
         ]
@@ -73,7 +78,7 @@
 
 
 (defn print-full-source [break-line fn-symbol]
-  (let [fn-meta (-> fn-symbol find-var meta)
+  (let [fn-meta (-> fn-symbol safe-find-var meta)
         format-fn (partial format-line-with-line-numbers false break-line)
         lines (map-numbered-source-lines format-fn fn-symbol)]
     (if (empty? lines)
@@ -85,7 +90,7 @@
 
 (defn print-short-source [break-line fn-symbol]
   (let [
-        fn-meta (-> fn-symbol find-var meta)
+        fn-meta (-> fn-symbol safe-find-var meta)
         format-fn (partial format-line-with-line-numbers true break-line)
         lines (map-numbered-source-lines format-fn fn-symbol)
         ]
@@ -185,7 +190,7 @@
 
            path-to-src# (-> (java.io.File. ".") .getCanonicalPath)
            outer-fn-symbol# (-> (Throwable.) .getStackTrace first .getClassName unmangle symbol)
-           outer-fn-meta# (-> outer-fn-symbol# find-var meta)
+           outer-fn-meta# (-> outer-fn-symbol# safe-find-var meta)
            outer-fn-path# (if outer-fn-meta#
                             (str path-to-src# "/src/" (:file outer-fn-meta#) ":" (:line outer-fn-meta#))
                             (no-sources-found outer-fn-symbol#))
