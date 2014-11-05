@@ -142,14 +142,13 @@
   ([trace] (print-trace (constantly true) trace))
   ([filter-fn trace]
    (print-stack-table
-     (dbg (->> trace
+     (->> trace
           (mapv (fn [i s] [i s]) (range))
           (filter filter-fn)
           (map (fn [[i s]] [(str "[" i "]")
-                           (.getFileName s)
-                           (.getLineNumber s)
-                           (clojure.main/demunge (.getClassName s))])
-               ))))))
+                            (.getFileName s)
+                            (.getLineNumber s)
+                            (clojure.main/demunge (.getClassName s))]))))))
 
 (defn eval-fn [break-ns break-line fn-symbol project trace signal-val return-val cached-cont-val locals-fn cont-fn form]
   (do
