@@ -69,7 +69,7 @@
 (defn- map-numbered-source-lines [f fn-symbol]
   (let [
         fn-source (clojure.repl/source-fn fn-symbol)
-        fn-source-lines (if fn-source (clojure.string/split fn-source #"\n") [])
+        fn-source-lines (if fn-source (clojure.string/split-lines fn-source) [])
         fn-meta (-> fn-symbol safe-find-var meta)
         fn-source-start-line (or (:line fn-meta) 0)
         line-numbers (map (partial + fn-source-start-line) (range))
