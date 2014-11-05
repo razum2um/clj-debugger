@@ -1,6 +1,7 @@
 (ns debugger.core
   (:require [clojure.reflect]
-            [clojure.repl])
+            [clojure.repl]
+            [leiningen.core.project :as lein])
   (:gen-class)
   (:use [aprint.core]))
 
@@ -173,6 +174,8 @@
     (if (and ns-name fn-name)
       (clojure.string/replace (str ns-name "/" fn-name) "_" "-"))))
 
+(defn read-project [fname]
+  (lein/read fname))
 
 (defmacro break [& body]
   (let [
@@ -183,44 +186,52 @@
         ]
     `(let [
            ;; s# (println "!!! in macro on line=" ~@body)
-           macro-line# (or (:break-line ~@body) ~break-line 0)
-           cont-fn# #(identity (or (:exception ~@body) ~@body))
-           locals-fn# #(identity (or (:env ~@body) ~env))
-
-           return-val# (atom nil)
-           cached-cont-val# (atom nil)
-           signal-val# (atom nil)
-
-           path-to-src# (-> (java.io.File. ".") .getCanonicalPath)
            trace# (-> (Throwable.) .getStackTrace)
            repl?# (->> trace# seq (map #(.getClassName %)) (some #(re-find #"\$read_eval_print_" %)))
-
-           outer-fn-symbol# (-> trace# first .getClassName unmangle symbol)
-           outer-fn-meta# (-> outer-fn-symbol# safe-find-var meta)
-           outer-fn-path# (if outer-fn-meta#
-                            (str path-to-src# "/src/" (:file outer-fn-meta#) ":" (:line outer-fn-meta#))
-                            (no-sources-found outer-fn-symbol#))
-
-
-           macro-ns# (ns-name (or (:ns outer-fn-meta#) *ns*))
-           macro-eval-fn# (partial eval-fn macro-ns# ~break-line outer-fn-symbol# signal-val# return-val# cached-cont-val# locals-fn# cont-fn#)
-           macro-read-fn# (partial read-fn signal-val#)
-           macro-prompt-fn# (partial prompt-fn outer-fn-symbol# macro-line# signal-val#)
-
            ]
 
-       (when repl?#
-         (print-short-source macro-line# outer-fn-symbol#)
-         (clojure.main/repl
-           :prompt macro-prompt-fn#
-           :eval macro-eval-fn#
-           :read macro-read-fn#
-           :caught caught-fn))
+       (if repl?#
+         (do
+           (let [
+                 macro-line# (or (:break-line ~@body) ~break-line 0)
+                 cont-fn# #(identity (or (:exception ~@body) ~@body))
+                 locals-fn# #(identity (or (:env ~@body) ~env))
 
-       (or
-         (deref return-val#)
-         (deref cached-cont-val#)
-         (cont-fn#)))))
+                 return-val# (atom nil)
+                 cached-cont-val# (atom nil)
+                 signal-val# (atom nil)
+
+                 project-dir# (-> (java.io.File. ".") .getCanonicalPath)
+                 project# (read-project (str project-dir# "/project.clj"))
+                 path-to-src# (or (:source-paths project#)
+                                  (str project-dir# "/src"))
+                 outer-fn-symbol# (-> trace# first .getClassName unmangle symbol)
+                 outer-fn-meta# (-> outer-fn-symbol# safe-find-var meta)
+                 outer-fn-path# (if outer-fn-meta#
+                                  ;; FIXME: project's :source-paths
+                                  (str path-to-src# "/" (:file outer-fn-meta#) ":" (:line outer-fn-meta#))
+                                  (no-sources-found outer-fn-symbol#))
+
+
+                 macro-ns# (ns-name (or (:ns outer-fn-meta#) *ns*))
+                 macro-eval-fn# (partial eval-fn macro-ns# ~break-line outer-fn-symbol# signal-val# return-val# cached-cont-val# locals-fn# cont-fn#)
+                 macro-read-fn# (partial read-fn signal-val#)
+                 macro-prompt-fn# (partial prompt-fn outer-fn-symbol# macro-line# signal-val#)
+                 ]
+             (print-short-source macro-line# outer-fn-symbol#)
+             (clojure.main/repl
+               :prompt macro-prompt-fn#
+               :eval macro-eval-fn#
+               :read macro-read-fn#
+               :caught caught-fn)
+             (or
+               (deref return-val#)
+               (deref cached-cont-val#)
+               (cont-fn#))
+             ))
+         ;; not repl
+         (do ~@body))
+       )))
 
 (defmacro break-catch [& body]
   (let [
@@ -233,7 +244,7 @@
     (catch Exception ~'e
       (break {:break-line ~break-line :env ~env :exception ~'e})))))
 
-(defn -main [& args]
-  (println "-main:"
-           (break (pr-str args))))
+;; (defn -main [& args]
+;;   (println "-main:"
+;;            (break (pr-str args))))
 
