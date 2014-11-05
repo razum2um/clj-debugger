@@ -8,8 +8,6 @@
 (def ^:dynamic *code-context-lines* 5)
 (def ^:dynamic *break-outside-repl* false)
 
-(def char-map (Compiler/CHAR_MAP))
-
 (defmacro dbg
   [x]
   `(let [x# ~x]
@@ -34,13 +32,13 @@
                        (apply max (count (str k)) (map #(count (str (get % k))) rows)))
                      ks)
              ;; parametrize alignment
-             fmts (mapv (fn [i w] ((nth (flatten (repeat alignment-fns)) i) w)) (range) widths)
+             fmts (mapv (fn [i w] ((nth (cycle alignment-fns) i) w)) (range) widths)
              fmt-row (fn [leader dividers trailer row]
                        (str leader
                             (apply str (butlast (interleave
                                          (for [[col fmt] (map vector (map #(get row %) ks) fmts)]
                                            (format fmt (str col)))
-                                         (flatten (repeat dividers))
+                                         (cycle dividers)
                                          )))
                             trailer))]
          (println)
@@ -137,6 +135,21 @@
           (println)
           (println (clojure.string/join "\n" (filter some? lines)) "\n")))))
 
+(defn non-std-trace-element? [^StackTraceElement s]
+  (nil? (re-find #"^clojure\.|^java\." (.getClassName s))))
+
+(defn print-trace
+  ([trace] (print-trace (constantly true) trace))
+  ([filter-fn trace]
+   (print-stack-table
+     (dbg (->> trace
+          (mapv (fn [i s] [i s]) (range))
+          (filter filter-fn)
+          (map (fn [[i s]] [(str "[" i "]")
+                           (.getFileName s)
+                           (.getLineNumber s)
+                           (clojure.main/demunge (.getClassName s))])
+               ))))))
 
 (defn eval-fn [break-ns break-line fn-symbol project trace signal-val return-val cached-cont-val locals-fn cont-fn form]
   (do
@@ -158,16 +171,11 @@
       #"\(c\)|\(continue\)" (do
                               (reset! cached-cont-val (cont-fn)))
 
-      #"\(s\)|\(stack\)" (do (print-stack-table
-                               (->> trace
-                                    (mapv (fn [i s] [
-                                                     (str "[" i "]")
-                                                     (.getFileName s)
-                                                     (.getLineNumber s)
-                                                     (clojure.main/demunge (.getClassName s))
-                                                     ])
-                                          (range))))
-                             (println))
+      #"\(s\)" (do (print-trace (fn [[_ s]] (non-std-trace-element? s)) trace)
+                   (println))
+
+      #"\(stack\)" (do (print-trace trace)
+                       (println))
 
       #"\(q\)|\(quit\)" (do
                           (reset! signal-val :stream-end)
