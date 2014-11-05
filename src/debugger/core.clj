@@ -21,31 +21,59 @@
   (if-not @signal-val
     (printf "%s:%s=> " fn-symbol break-line)))
 
-(defn print-table
-  ([ks rows]
+(defn print-borderless-table-with-alignment
+  "Borrowed from clojure.pprint/print-table"
+  ([spacers alignment-fns rows]
+   (if (coll? (first rows)) ;; add this
+     (print-borderless-table-with-alignment spacers alignment-fns (range (count (first rows))) rows)
+     (print-borderless-table-with-alignment spacers alignment-fns (keys (first rows)) rows)))
+  ([spacers alignment-fns ks rows]
      (when (seq rows)
        (let [widths (map
                      (fn [k]
                        (apply max (count (str k)) (map #(count (str (get % k))) rows)))
                      ks)
-             spacers (map #(apply str (repeat % "-")) widths)
-             fmts (map #(str "%-" % "s") widths)
-             fmt-row (fn [leader divider trailer row]
+             ;; parametrize alignment
+             fmts (mapv (fn [i w] ((nth (flatten (repeat alignment-fns)) i) w)) (range) widths)
+             fmt-row (fn [leader dividers trailer row]
                        (str leader
-                            (apply str (interpose divider
-                                                  (for [[col fmt] (map vector (map #(get row %) ks) fmts)]
-                                                    (format fmt (str col)))))
+                            (apply str (butlast (interleave
+                                         (for [[col fmt] (map vector (map #(get row %) ks) fmts)]
+                                           (format fmt (str col)))
+                                         (flatten (repeat dividers))
+                                         )))
                             trailer))]
          (println)
+         ;; parametrize spacers
+         ;; (doall (mapv (fn [i row] (println (fmt-row " " (nth (flatten (repeat spacers)) i) "" row)))
+         ;;              (range)
+         ;;              rows))
          (doseq [row rows]
-           (println (fmt-row " " " " " " row))))))
-  ([rows] (print-table (keys (first rows)) rows)))
+           (println (fmt-row " " spacers "" row)))
+         ))))
+
+(def print-table-left-align
+  (partial
+    print-borderless-table-with-alignment
+    \tab
+    [(fn [width] (str "%-" width "s"))]))
+
+(def print-stack-table
+  (partial
+    print-borderless-table-with-alignment
+    [\tab ":" \tab] ;; dividers = (count cols) - 1
+    [
+     (fn [width] (str "%" width "s"))
+     (fn [width] (str "%" width "s"))
+     (fn [width] (str "%-" width "s"))
+     (fn [width] (str "%-" width "s"))
+     ]))
 
 (defn no-sources-found [fn-symbol]
   (str "No source found for " fn-symbol))
 
 (defn help-message []
-  (print-table
+  (print-table-left-align
     [:cmd :long :help]
     [{:cmd "(h)" :long "(help)"      :help "prints this help"}
      {:cmd "(w)" :long ""            :help "prints short code of breakpointed function"}
@@ -110,7 +138,7 @@
           (println (clojure.string/join "\n" (filter some? lines)) "\n")))))
 
 
-(defn eval-fn [break-ns break-line fn-symbol signal-val return-val cached-cont-val locals-fn cont-fn form]
+(defn eval-fn [break-ns break-line fn-symbol project trace signal-val return-val cached-cont-val locals-fn cont-fn form]
   (do
     (condp re-find (clojure.string/trim (str form))
       #"\(h\)|\(help\)" (do
@@ -129,6 +157,17 @@
 
       #"\(c\)|\(continue\)" (do
                               (reset! cached-cont-val (cont-fn)))
+
+      #"\(s\)|\(stack\)" (do (print-stack-table
+                               (->> trace
+                                    (mapv (fn [i s] [
+                                                     (str "[" i "]")
+                                                     (.getFileName s)
+                                                     (.getLineNumber s)
+                                                     (clojure.main/demunge (.getClassName s))
+                                                     ])
+                                          (range))))
+                             (println))
 
       #"\(q\)|\(quit\)" (do
                           (reset! signal-val :stream-end)
@@ -155,6 +194,7 @@
        (or (deref signal-val)
            (clojure.main/skip-whitespace *in*)))
       (let [input (read)]
+        ;; (println "> Read-fn got:" (seq (.getBytes "asd")))
         (clojure.main/skip-if-eol *in*)
         input)))
 
@@ -171,18 +211,6 @@
                       (str " " (if el (clojure.main/stack-element-str el) "[trace missing]"))))))))
 
 
-(defn unmangle [s]
-  (let [[ns-name fn-name & tail] (clojure.string/split s #"\$")]
-    (if (and ns-name fn-name)
-      (let [qualified-name (str ns-name "/" fn-name)
-            underscored-name (reduce (fn [s [k v]]
-                                       (if (= k \-)
-                                         s
-                                         (clojure.string/replace s v (str k))))
-                                     qualified-name
-                                     char-map)]
-        (clojure.string/replace underscored-name "_" "-")))))
-
 (defn read-project [fname]
   (lein/read fname))
 
@@ -195,7 +223,7 @@
         ]
     `(let [
            ;; s# (println "!!! in macro on line=" ~@body)
-           trace# (-> (Throwable.) .getStackTrace)
+           trace# (-> (Throwable.) .getStackTrace seq)
            repl?# (->> trace#
                        (map #(.getClassName %))
                        (some #(re-find #"\$read_eval_print_" %)))
@@ -216,7 +244,7 @@
                  project# (read-project (str project-dir# "/project.clj"))
                  path-to-src# (or (:source-paths project#)
                                   (str project-dir# "/src"))
-                 outer-fn-symbol# (-> trace# first .getClassName unmangle symbol)
+                 outer-fn-symbol# (-> trace# first .getClassName clojure.main/demunge symbol)
                  outer-fn-meta# (-> outer-fn-symbol# safe-find-var meta)
                  outer-fn-path# (if outer-fn-meta#
                                   ;; FIXME: project's :source-paths
@@ -225,7 +253,7 @@
 
 
                  macro-ns# (ns-name (or (:ns outer-fn-meta#) *ns*))
-                 macro-eval-fn# (partial eval-fn macro-ns# ~break-line outer-fn-symbol# signal-val# return-val# cached-cont-val# locals-fn# cont-fn#)
+                 macro-eval-fn# (partial eval-fn macro-ns# ~break-line outer-fn-symbol# project# trace# signal-val# return-val# cached-cont-val# locals-fn# cont-fn#)
                  macro-read-fn# (partial read-fn signal-val#)
                  macro-prompt-fn# (partial prompt-fn outer-fn-symbol# macro-line# signal-val#)
                  ]

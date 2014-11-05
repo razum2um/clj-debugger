@@ -14,4 +14,6 @@
                  ]
   ;; :plugins [[slothcfg "1.0.1"]]
   ;; :main ^:skip-aot debugger.main ;; breaks (refresh)
+  ;; :jvm-opts ["-Xdebug"
+  ;;            "-Xrunjdwp:transport=dt_socket,address=8000,server=y"]
   )
