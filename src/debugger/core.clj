@@ -5,6 +5,7 @@
 
 (declare ^:dynamic *locals*)
 (def ^:dynamic *code-context-lines* 5)
+(def ^:dynamic *break-outside-repl* false)
 
 (defmacro dbg
   [x]
@@ -185,10 +186,12 @@
     `(let [
            ;; s# (println "!!! in macro on line=" ~@body)
            trace# (-> (Throwable.) .getStackTrace)
-           repl?# (->> trace# seq (map #(.getClassName %)) (some #(re-find #"\$read_eval_print_" %)))
+           repl?# (->> trace#
+                       (map #(.getClassName %))
+                       (some #(re-find #"\$read_eval_print_" %)))
            ]
 
-       (if repl?#
+       (if (or *break-outside-repl* repl?#)
          (do
            (let [
                  macro-line# (or (:break-line ~@body) ~break-line 0)
