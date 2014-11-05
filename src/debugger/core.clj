@@ -1,11 +1,14 @@
 (ns debugger.core
   (:require [clojure.reflect]
             [clojure.repl]
-            [leiningen.core.project :as lein]))
+            [leiningen.core.project :as lein])
+  (:import [clojure.lang Compiler]))
 
 (declare ^:dynamic *locals*)
 (def ^:dynamic *code-context-lines* 5)
 (def ^:dynamic *break-outside-repl* false)
+
+(def char-map (Compiler/CHAR_MAP))
 
 (defmacro dbg
   [x]
@@ -171,7 +174,14 @@
 (defn unmangle [s]
   (let [[ns-name fn-name & tail] (clojure.string/split s #"\$")]
     (if (and ns-name fn-name)
-      (clojure.string/replace (str ns-name "/" fn-name) "_" "-"))))
+      (let [qualified-name (str ns-name "/" fn-name)
+            underscored-name (reduce (fn [s [k v]]
+                                       (if (= k \-)
+                                         s
+                                         (clojure.string/replace s v (str k))))
+                                     qualified-name
+                                     char-map)]
+        (clojure.string/replace underscored-name "_" "-")))))
 
 (defn read-project [fname]
   (lein/read fname))
