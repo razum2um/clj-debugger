@@ -1,6 +1,8 @@
 (ns debugger.core
   (:require [clojure.reflect]
-            [clojure.repl]))
+            [clojure.repl])
+  (:gen-class)
+  (:use [aprint.core]))
 
 (declare ^:dynamic *locals*)
 (def ^:dynamic *code-context-lines* 5)
@@ -190,7 +192,10 @@
            signal-val# (atom nil)
 
            path-to-src# (-> (java.io.File. ".") .getCanonicalPath)
-           outer-fn-symbol# (-> (Throwable.) .getStackTrace first .getClassName unmangle symbol)
+           trace# (-> (Throwable.) .getStackTrace)
+           repl?# (->> trace# seq (map #(.getClassName %)) (some #(re-find #"\$read_eval_print_" %)))
+
+           outer-fn-symbol# (-> trace# first .getClassName unmangle symbol)
            outer-fn-meta# (-> outer-fn-symbol# safe-find-var meta)
            outer-fn-path# (if outer-fn-meta#
                             (str path-to-src# "/src/" (:file outer-fn-meta#) ":" (:line outer-fn-meta#))
@@ -204,12 +209,14 @@
 
            ]
 
-       (print-short-source macro-line# outer-fn-symbol#)
-       (clojure.main/repl
-         :prompt macro-prompt-fn#
-         :eval macro-eval-fn#
-         :read macro-read-fn#
-         :caught caught-fn)
+       (when repl?#
+         (print-short-source macro-line# outer-fn-symbol#)
+         (clojure.main/repl
+           :prompt macro-prompt-fn#
+           :eval macro-eval-fn#
+           :read macro-read-fn#
+           :caught caught-fn))
+
        (or
          (deref return-val#)
          (deref cached-cont-val#)
@@ -225,4 +232,8 @@
     (do ~@body)
     (catch Exception ~'e
       (break {:break-line ~break-line :env ~env :exception ~'e})))))
+
+(defn -main [& args]
+  (println "-main:"
+           (break (pr-str args))))
 
