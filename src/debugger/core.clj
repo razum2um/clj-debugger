@@ -84,12 +84,17 @@
      {:cmd ""    :long ""            :help "any last execution result (but `nil`) before exit will be passed further"}
      {:cmd ""    :long ""            :help "if last result is `nil` execution will continue normally"}]))
 
-(defn- format-line-with-line-numbers [short? break-line line line-number]
+(defn- format-line-with-line-numbers [short? break-line line-number line]
+  {:pre (some? break-line)}
   (cond
     (= break-line line-number) (str "=> " line-number ": " line)
     (and short? (<= line-number (- break-line *code-context-lines*))) nil
     (and short? (>= line-number (+ break-line *code-context-lines*))) nil
     :else (str "   " line-number ": " line)))
+
+(defn deanonimize-name [^String s]
+  "Inner qualified names `debugger.core-test/err/fn--4248` -> no source found"
+  (clojure.string/join "/" (take 2 (clojure.string/split s #"/"))))
 
 
 (defn safe-find-var [sym]
@@ -97,15 +102,16 @@
   (and (-> sym namespace symbol find-ns)
        (-> sym find-var)))
 
+
 (defn- map-numbered-source-lines [f fn-symbol]
   (let [
         fn-source (clojure.repl/source-fn fn-symbol)
         fn-source-lines (if fn-source (clojure.string/split-lines fn-source) [])
         fn-meta (-> fn-symbol safe-find-var meta)
-        fn-source-start-line (or (:line fn-meta) 0)
+        fn-source-start-line (or (:line fn-meta) 1)
         line-numbers (map (partial + fn-source-start-line) (range))
         ]
-    (mapv f fn-source-lines line-numbers)))
+    (mapv f line-numbers fn-source-lines)))
 
 
 (defn print-full-source [break-line fn-symbol]
@@ -135,8 +141,10 @@
           (println)
           (println (clojure.string/join "\n" (filter some? lines)) "\n")))))
 
+
 (defn non-std-trace-element? [^StackTraceElement s]
   (nil? (re-find #"^clojure\.|^java\." (.getClassName s))))
+
 
 (defn print-trace
   ([trace] (print-trace (constantly true) trace))
@@ -221,10 +229,6 @@
 (defn read-project [fname]
   (lein/read fname))
 
-(defn deanonimize-name [^String s]
-  "Inner qualified names `debugger.core-test/err/fn--4248` -> no source found"
-  (clojure.string/join "/" (take 2 (clojure.string/split s #"/"))))
-
 (defmacro break [& body]
   (let [
         env (into {} (map (fn [[sym bind]] [`(quote ~sym) (.sym bind)]) &env))
@@ -243,7 +247,7 @@
        (if (or *break-outside-repl* repl?#)
          (do
            (let [
-                 macro-line# (or (:break-line ~@body) ~break-line 0)
+                 macro-break-line# (or (:break-line ~@body) ~break-line 1)
                  cont-fn# #(identity (or (:exception ~@body) ~@body))
                  locals-fn# #(identity (or (:env ~@body) ~env))
 
@@ -258,17 +262,16 @@
                  outer-fn-symbol# (-> trace# first .getClassName clojure.main/demunge deanonimize-name symbol)
                  outer-fn-meta# (-> outer-fn-symbol# safe-find-var meta)
                  outer-fn-path# (if outer-fn-meta#
-                                  ;; FIXME: project's :source-paths
                                   (str path-to-src# "/" (:file outer-fn-meta#) ":" (:line outer-fn-meta#))
                                   (no-sources-found outer-fn-symbol#))
 
 
                  macro-ns# (ns-name (or (:ns outer-fn-meta#) *ns*))
-                 macro-eval-fn# (partial eval-fn macro-ns# ~break-line outer-fn-symbol# project# trace# signal-val# return-val# cached-cont-val# locals-fn# cont-fn#)
+                 macro-eval-fn# (partial eval-fn macro-ns# macro-break-line# outer-fn-symbol# project# trace# signal-val# return-val# cached-cont-val# locals-fn# cont-fn#)
                  macro-read-fn# (partial read-fn signal-val#)
-                 macro-prompt-fn# (partial prompt-fn outer-fn-symbol# macro-line# signal-val#)
+                 macro-prompt-fn# (partial prompt-fn outer-fn-symbol# macro-break-line# signal-val#)
                  ]
-             (print-short-source macro-line# outer-fn-symbol#)
+             (print-short-source macro-break-line# outer-fn-symbol#)
              (clojure.main/repl
                :prompt macro-prompt-fn#
                :eval macro-eval-fn#
