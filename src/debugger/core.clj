@@ -68,7 +68,7 @@
      ]))
 
 (defn no-sources-found [fn-symbol]
-  (str "No source found for " fn-symbol))
+  (str "No source found for " fn-symbol "\n"))
 
 (defn help-message []
   (print-table-left-align
@@ -221,6 +221,10 @@
 (defn read-project [fname]
   (lein/read fname))
 
+(defn deanonimize-name [^String s]
+  "Inner qualified names `debugger.core-test/err/fn--4248` -> no source found"
+  (clojure.string/join "/" (take 2 (clojure.string/split s #"/"))))
+
 (defmacro break [& body]
   (let [
         env (into {} (map (fn [[sym bind]] [`(quote ~sym) (.sym bind)]) &env))
@@ -251,7 +255,7 @@
                  project# (read-project (str project-dir# "/project.clj"))
                  path-to-src# (or (:source-paths project#)
                                   (str project-dir# "/src"))
-                 outer-fn-symbol# (-> trace# first .getClassName clojure.main/demunge symbol)
+                 outer-fn-symbol# (-> trace# first .getClassName clojure.main/demunge deanonimize-name symbol)
                  outer-fn-meta# (-> outer-fn-symbol# safe-find-var meta)
                  outer-fn-path# (if outer-fn-meta#
                                   ;; FIXME: project's :source-paths
