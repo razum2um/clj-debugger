@@ -6,10 +6,12 @@
   :dependencies [
                  [org.clojure/clojure "1.6.0"]
                  ;; [org.clojure/clojure "1.7.0-master-SNAPSHOT"]
-                 [lein-ubersource "0.1.1"]
-                 [org.bitbucket.mstrobel/procyon-compilertools "0.5.27"]
+                 ;; [lein-ubersource "0.1.1"]
+                 ;; [org.bitbucket.mstrobel/procyon-compilertools "0.5.27"]
                  ;; [slothcfg "1.0.1"]
                  [leiningen "2.5.0"]
-                 [org.clojars.razum2um/jd-core-java "1.2"]]
-  :plugins [[slothcfg "1.0.1"]]
-  :main ^:skip-aot debugger.core)
+                 ;; [org.clojars.razum2um/jd-core-java "1.2"]
+                 ]
+  ;; :plugins [[slothcfg "1.0.1"]]
+  ;; :main ^:skip-aot debugger.main ;; breaks (refresh)
+  )

@@ -1,9 +1,7 @@
 (ns debugger.core
   (:require [clojure.reflect]
             [clojure.repl]
-            [leiningen.core.project :as lein])
-  (:gen-class)
-  (:use [aprint.core]))
+            [leiningen.core.project :as lein]))
 
 (declare ^:dynamic *locals*)
 (def ^:dynamic *code-context-lines* 5)
@@ -233,6 +231,7 @@
          (do ~@body))
        )))
 
+
 (defmacro break-catch [& body]
   (let [
         env (into {} (map (fn [[sym bind]] [`(quote ~sym) (.sym bind)]) &env))
@@ -243,8 +242,4 @@
     (do ~@body)
     (catch Exception ~'e
       (break {:break-line ~break-line :env ~env :exception ~'e})))))
-
-;; (defn -main [& args]
-;;   (println "-main:"
-;;            (break (pr-str args))))
 
