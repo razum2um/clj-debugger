@@ -25,9 +25,11 @@
   (let [my-fn (dbg (break (fn inner [x] (* multi x))))]
     (map my-fn (range 2))))
 
-(defn qux [multi]
-  (let [my-fn (fn inner [x] (break (* multi x)))]
-    (map my-fn (range 2))))
+(defn qux
+  ([] (qux 10))
+  ([multi]
+   (let [my-fn (fn inner [x] (break (* multi x)))]
+     (map my-fn (range 1 3)))))
 
 (defn err []
   (let [i 42]

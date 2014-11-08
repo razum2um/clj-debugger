@@ -142,6 +142,12 @@
           (println (clojure.string/join "\n" (filter some? lines)) "\n")))))
 
 
+(defn demunge [s]
+  (let [[raw-ns-name fn-name & tail] (clojure.string/split s #"\$")
+        demunged-ns-name (clojure.main/demunge raw-ns-name)]
+    (clojure.string/join "/" [(ns-name (some (comp find-ns symbol) [raw-ns-name demunged-ns-name]))
+                              (clojure.main/demunge fn-name)])))
+
 (defn non-std-trace-element? [^StackTraceElement s]
   (nil? (re-find #"^clojure\.|^java\." (.getClassName s))))
 
@@ -156,7 +162,7 @@
           (map (fn [[i s]] [(str "[" i "]")
                             (.getFileName s)
                             (.getLineNumber s)
-                            (clojure.main/demunge (.getClassName s))]))))))
+                            (demunge (.getClassName s))]))))))
 
 (defn eval-fn [break-ns break-line fn-symbol project trace signal-val return-val cached-cont-val locals-fn cont-fn form]
   (do
@@ -173,7 +179,7 @@
 
       #"\(l\)|\(locals\)" (do
                             (binding [*print-length* 5]
-                              (println (locals-fn))))
+                              (aprint.core/nprint (locals-fn))))
 
       #"\(c\)|\(continue\)" (do
                               (reset! cached-cont-val (cont-fn)))
@@ -239,6 +245,7 @@
     `(let [
            ;; s# (println "!!! in macro on line=" ~@body)
            trace# (-> (Throwable.) .getStackTrace seq)
+           outer-fn-symbol# (-> trace# first .getClassName demunge deanonimize-name symbol)
            repl?# (->> trace#
                        (map #(.getClassName %))
                        (some #(re-find #"\$read_eval_print_" %)))
@@ -257,20 +264,19 @@
 
                  project-dir# (-> (java.io.File. ".") .getCanonicalPath)
                  project# (read-project (str project-dir# "/project.clj"))
-                 path-to-src# (or (:source-paths project#)
+                 path-to-src# (or (first (:source-paths project#))
                                   (str project-dir# "/src"))
-                 outer-fn-symbol# (-> trace# first .getClassName clojure.main/demunge deanonimize-name symbol)
                  outer-fn-meta# (-> outer-fn-symbol# safe-find-var meta)
                  outer-fn-path# (if outer-fn-meta#
                                   (str path-to-src# "/" (:file outer-fn-meta#) ":" (:line outer-fn-meta#))
                                   (no-sources-found outer-fn-symbol#))
-
 
                  macro-ns# (ns-name (or (:ns outer-fn-meta#) *ns*))
                  macro-eval-fn# (partial eval-fn macro-ns# macro-break-line# outer-fn-symbol# project# trace# signal-val# return-val# cached-cont-val# locals-fn# cont-fn#)
                  macro-read-fn# (partial read-fn signal-val#)
                  macro-prompt-fn# (partial prompt-fn outer-fn-symbol# macro-break-line# signal-val#)
                  ]
+             (println "\nBreak from:" outer-fn-path# "(type \"(help)\" for help)")
              (print-short-source macro-break-line# outer-fn-symbol#)
              (clojure.main/repl
                :prompt macro-prompt-fn#
