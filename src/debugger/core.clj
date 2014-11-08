@@ -76,8 +76,8 @@
   (print-table-left-align
     [:cmd :long :help]
     [{:cmd "(h)"  :long "(help)"      :help "prints this help"}
-     {:cmd "(w)"  :long ""            :help "prints short code of breakpointed function"}
-     {:cmd ""     :long "(whereami)"  :help "prints full code of breakpointed function"}
+     {:cmd ""     :long "(wtf)"       :help "prints short code of breakpointed function"}
+     {:cmd ""     :long "(wtf??)"     :help "prints full code of breakpointed function"}
      {:cmd "(l)"  :long "(locals)"    :help "prints locals"}
      {:cmd "(c)"  :long "(continue)"  :help "continues execution, preserves the result and will break here again"}
      {:cmd ""     :long "(skip 3)"    :help "skips next 3 breakpoints in this place"}
@@ -199,10 +199,9 @@
       #"\(wtf\)" (do (print-trace (fn [[_ s]] (non-std-trace-element? s)) trace)
                    (println))
 
-      #"\(wtf1\)" (do
-                    (println trace)
-                    (print-trace trace)
-                    (println))
+      #"\(wtf\?+\)" (do
+                      (print-trace trace)
+                      (println))
 
       #"\(skip \d+\)" (do
                         (reset! signal-val :stream-end)
