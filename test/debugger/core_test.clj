@@ -29,7 +29,7 @@
   ([] (qux 10))
   ([multi]
    (let [my-fn (fn inner [x] (break (* multi x)))]
-     (map my-fn (range 1 3)))))
+     (map my-fn (range 1 5)))))
 
 (defn err []
   (let [i 42]

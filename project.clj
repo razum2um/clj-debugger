@@ -8,6 +8,7 @@
                  ;; [org.clojure/clojure "1.7.0-master-SNAPSHOT"]
                  [lein-ubersource "0.1.1"]
                  [aprint "0.1.1"]
+                 [robert/hooke "1.3.0"]
                  [org.bitbucket.mstrobel/procyon-compilertools "0.5.27"]
                  ;; [slothcfg "1.0.1"]
                  [leiningen "2.5.0"]

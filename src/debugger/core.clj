@@ -2,11 +2,13 @@
   (:require [clojure.reflect]
             [clojure.repl]
             [leiningen.core.project :as lein])
+  (:use [robert.hooke])
   (:import [clojure.lang Compiler]))
 
 (declare ^:dynamic *locals*)
 (def ^:dynamic *code-context-lines* 5)
 (def ^:dynamic *break-outside-repl* false)
+(def ^:dynamic *skip* (atom {}))
 
 (defmacro dbg
   [x]
@@ -73,16 +75,17 @@
 (defn help-message []
   (print-table-left-align
     [:cmd :long :help]
-    [{:cmd "(h)" :long "(help)"      :help "prints this help"}
-     {:cmd "(w)" :long ""            :help "prints short code of breakpointed function"}
-     {:cmd ""    :long "(whereami)"  :help "prints full code of breakpointed function"}
-     {:cmd "(l)" :long "(locals)"    :help "prints locals"}
-     {:cmd "(c)" :long "(continue)"  :help "continues execution and preserves the result"}
-     {:cmd "(q)" :long "(quit)"      :help "or type Ctrl-D to exit break-repl and pass last result further"}
-     {:cmd ""    :long ""            :help ""}
-     {:cmd ""    :long ""            :help "you can also access locals directly and build sexp with them"}
-     {:cmd ""    :long ""            :help "any last execution result (but `nil`) before exit will be passed further"}
-     {:cmd ""    :long ""            :help "if last result is `nil` execution will continue normally"}]))
+    [{:cmd "(h)"  :long "(help)"      :help "prints this help"}
+     {:cmd "(w)"  :long ""            :help "prints short code of breakpointed function"}
+     {:cmd ""     :long "(whereami)"  :help "prints full code of breakpointed function"}
+     {:cmd "(l)"  :long "(locals)"    :help "prints locals"}
+     {:cmd "(c)"  :long "(continue)"  :help "continues execution, preserves the result and will break here again"}
+     {:cmd ""     :long "(skip 3)"    :help "skips next 3 breakpoints in this place"}
+     {:cmd "(q)"  :long "(quit)"      :help "or type Ctrl-D to exit break-repl, pass last result further, will never break here anymore"}
+     {:cmd ""     :long ""            :help ""}
+     {:cmd ""     :long ""            :help "you can also access locals directly and build sexp with them"}
+     {:cmd ""     :long ""            :help "any last execution result (but `nil`) before exit will be passed further"}
+     {:cmd ""     :long ""            :help "if last result is `nil` execution will continue normally"}]))
 
 (defn- format-line-with-line-numbers [short? break-line line-number line]
   {:pre (some? break-line)}
@@ -141,12 +144,18 @@
           (println)
           (println (clojure.string/join "\n" (filter some? lines)) "\n")))))
 
+(defn fn-try [f & args]
+  (if (some? (first args))
+    (apply f args)
+    nil))
 
 (defn demunge [s]
   (let [[raw-ns-name fn-name & tail] (clojure.string/split s #"\$")
         demunged-ns-name (clojure.main/demunge raw-ns-name)]
-    (clojure.string/join "/" [(ns-name (some (comp find-ns symbol) [raw-ns-name demunged-ns-name]))
-                              (clojure.main/demunge fn-name)])))
+    (if fn-name
+      (clojure.string/join "/" [(or (fn-try ns-name (some (comp find-ns symbol) [raw-ns-name demunged-ns-name])) raw-ns-name)
+                                (clojure.main/demunge fn-name)])
+      s)))
 
 (defn non-std-trace-element? [^StackTraceElement s]
   (nil? (re-find #"^clojure\.|^java\." (.getClassName s))))
@@ -179,16 +188,27 @@
 
       #"\(l\)|\(locals\)" (do
                             (binding [*print-length* 5]
-                              (aprint.core/nprint (locals-fn))))
+                              (clojure.pprint/pprint (locals-fn))))
 
       #"\(c\)|\(continue\)" (do
+                              ;; break one more time
+                              (swap! *skip* #(assoc % fn-symbol 1))
+                              (reset! signal-val :stream-end)
                               (reset! cached-cont-val (cont-fn)))
 
-      #"\(s\)" (do (print-trace (fn [[_ s]] (non-std-trace-element? s)) trace)
+      #"\(wtf\)" (do (print-trace (fn [[_ s]] (non-std-trace-element? s)) trace)
                    (println))
 
-      #"\(stack\)" (do (print-trace trace)
-                       (println))
+      #"\(wtf1\)" (do
+                    (println trace)
+                    (print-trace trace)
+                    (println))
+
+      #"\(skip \d+\)" (do
+                        (reset! signal-val :stream-end)
+                        (swap! *skip* #(assoc % fn-symbol (+ (% fn-symbol)
+                                                                  (Integer. (re-find #"\d+" (str form))))))
+                        nil)
 
       #"\(q\)|\(quit\)" (do
                           (reset! signal-val :stream-end)
@@ -196,6 +216,7 @@
 
       ;; TODO: require & use from ns + in *ns*
       (do
+        ;; break one more time
         (reset!
           return-val
           (let [orig-ns (ns-name *ns*)]
@@ -235,12 +256,17 @@
 (defn read-project [fname]
   (lein/read fname))
 
+(defn hook [f & args]
+  (println "HOOK")
+  (apply f args))
+
+(defn reset-skips! []
+  (reset! *skip* {}))
+
 (defmacro break [& body]
   (let [
         env (into {} (map (fn [[sym bind]] [`(quote ~sym) (.sym bind)]) &env))
         break-line (:line (meta &form))
-        ;; _ (println "!!! in pre macro for" &form)
-        ;; _ (println "!!! meta of body" (meta body))
         ]
     `(let [
            ;; s# (println "!!! in macro on line=" ~@body)
@@ -251,7 +277,10 @@
                        (some #(re-find #"\$read_eval_print_" %)))
            ]
 
-       (if (or *break-outside-repl* repl?#)
+       (if (and (or *break-outside-repl* repl?#) (= 0 ((swap! *skip*
+                                                               #(assoc % outer-fn-symbol#
+                                                                       (dec (or (% outer-fn-symbol#) 1))))
+                                                        outer-fn-symbol#)))
          (do
            (let [
                  macro-break-line# (or (:break-line ~@body) ~break-line 1)
