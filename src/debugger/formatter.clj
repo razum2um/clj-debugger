@@ -1,5 +1,6 @@
 (ns debugger.formatter
-  (:require [debugger.config :refer :all]))
+  (:require [clojure.repl]
+            [debugger.config :refer :all]))
 
 (defn no-sources-found [fn-symbol]
   (str "No source found for " fn-symbol "\n"))
