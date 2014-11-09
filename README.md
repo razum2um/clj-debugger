@@ -68,6 +68,28 @@ debugger.core-test/foo:21=> z
 #<Object java.lang.Object@3dc76ae9>
 ```
 
+## Return value control
+
+Use any non-nil value to fake inner result
+
+```
+user=> (debugger.core-test/foo)
+
+Break from: /Users/razum2um/Code/debugger/src/debugger/core_test.clj:12 (type "(help)" for help)
+
+   17:         e (fn [] nil)
+   18:         x "world"
+   19:         y '(8 9)
+   20:         z (Object.)
+=> 21:         ret (break (inc 42))]
+   22:     (println "Exit foo with" ret)))
+
+debugger.core-test/foo:21=> 1                     ;; inner (inc 42) won't be called
+1
+debugger.core-test/foo:21=> Exit foo with 1       ;; used result from REPL
+nil
+```
+
 ## Code expection
 
 ```
