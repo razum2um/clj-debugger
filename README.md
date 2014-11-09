@@ -7,6 +7,16 @@ The missing tool in the ecosystem
 [![Clojars Project](http://clojars.org/debugger/latest-version.svg)](http://clojars.org/debugger)
 
 ```
+(use 'debugger.core)
+
+(break (some-fn))
+
+(break-catch (some-raising-fn))
+```
+
+## Breakpoints
+
+```
 user=> (dotimes [n 5] (debugger.core-test/foo n))
 
 Break from: /Users/razum2um/Code/debugger/src/debugger/core_test.clj:12 (type "(help)" for help)
