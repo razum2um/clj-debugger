@@ -43,9 +43,12 @@ debugger.core-test/foo:21=> (l)
 {x "world",
  a [1 2],
  y (8 9),
- args (0),
- e #<core_test$foo$e__3434 debugger.core_test$foo$e__3434@4adf5792>,
- ...}
+ args nil,
+ e #<core_test$foo$e__4735 debugger.core_test$foo$e__4735@6735cbba>,
+ z #<Object java.lang.Object@2094643d>,
+ h {:k "v"},
+ b #{4 3},
+ d nil}
 nil
 debugger.core-test/foo:21=> z
 #<Object java.lang.Object@3dc76ae9>

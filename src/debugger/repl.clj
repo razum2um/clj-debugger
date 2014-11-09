@@ -24,7 +24,7 @@
                         (print-full-source break-line fn-symbol))
 
       #"\(l\)|\(locals\)" (do
-                            (binding [*print-length* 5]
+                            (binding [*print-length* *locals-print-length*]
                               (clojure.pprint/pprint (locals-fn))))
 
       #"\(c\)|\(continue\)" (do
