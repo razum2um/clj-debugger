@@ -20,6 +20,7 @@
      {:cmd ""     :long "(skip 3)"    :help "skips next 3 breakpoints in this place"}
      {:cmd "(q)"  :long "(quit)"      :help "or type Ctrl-D to exit break-repl, pass last result further, will never break here anymore"}
      {:cmd ""     :long ""            :help ""}
+     {:cmd ""     :long ""            :help "use (debugger.core/reset-skips!) if breaks are skipped"}
      {:cmd ""     :long ""            :help "you can also access locals directly and build sexp with them"}
      {:cmd ""     :long ""            :help "any last execution result (but `nil`) before exit will be passed further"}
      {:cmd ""     :long ""            :help "if last result is `nil` execution will continue normally"}]))

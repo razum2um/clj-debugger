@@ -33,7 +33,7 @@
 (def print-table-left-align
   (partial
     print-borderless-table-with-alignment
-    \tab
+    [\tab]
     [(fn [width] (str "%-" width "s"))]))
 
 (def print-stack-table
