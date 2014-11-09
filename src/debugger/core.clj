@@ -2,7 +2,6 @@
   (:require [clojure.reflect]
             [clojure.repl]
             [leiningen.core.project :as lein])
-  (:use [robert.hooke])
   (:import [clojure.lang Compiler]))
 
 (declare ^:dynamic *locals*)
@@ -254,10 +253,6 @@
 
 (defn read-project [fname]
   (lein/read fname))
-
-(defn hook [f & args]
-  (println "HOOK")
-  (apply f args))
 
 (defn reset-skips! []
   (reset! *skip* {}))
