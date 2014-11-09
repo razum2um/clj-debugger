@@ -27,7 +27,11 @@ Break from: /Users/razum2um/Code/debugger/src/debugger/core_test.clj:12 (type "(
    20:         z (Object.)
 => 21:         ret (break (inc 42))]
    22:     (println "Exit foo with" ret)))
+```
 
+## Interactive help
+
+```
 debugger.core-test/qux:31=> (h)
 
  (h)    (help)          prints this help
