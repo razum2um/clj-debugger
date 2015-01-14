@@ -1,15 +1,11 @@
 (ns debugger.core
-  (:require [leiningen.core.project :as lein]
-            [debugger.config :refer :all]
+  (:require [debugger.config :refer :all]
             [debugger.formatter :refer [deanonimize-name
                                         demunge
                                         safe-find-var
                                         no-sources-found]]
             [debugger.commands :refer [print-short-source]]
             [debugger.repl :refer [prompt-fn read-fn eval-fn caught-fn]]))
-
-(defn reset-skips! []
-  (reset! *skip* {}))
 
 (defmacro dbg
   [x]
@@ -27,10 +23,7 @@
                        (map #(.getClassName %))
                        (some #(re-find #"\$read_eval_print_" %)))]
 
-       (if (and (or *break-outside-repl* repl?#) (= 0 ((swap! *skip*
-                                                               #(assoc % outer-fn-symbol#
-                                                                       (dec (or (% outer-fn-symbol#) 1))))
-                                                        outer-fn-symbol#)))
+       (if (or *break-outside-repl* repl?#)
          (do
            (let [macro-break-line# (or (:break-line ~@body) ~break-line 1)
                  cont-fn# #(identity (or (:exception ~@body) ~@body))
@@ -41,8 +34,7 @@
                  signal-val# (atom nil)
 
                  project-dir# (-> (java.io.File. ".") .getCanonicalPath)
-                 project# (lein/read (str project-dir# "/project.clj"))
-                 path-to-src# (or (first (:source-paths project#))
+                 path-to-src# (or ~(first (:source-paths (project)))
                                   (str project-dir# "/src"))
                  outer-fn-meta# (-> outer-fn-symbol# safe-find-var meta)
                  outer-fn-path# (if outer-fn-meta#
@@ -50,7 +42,7 @@
                                   (no-sources-found outer-fn-symbol#))
 
                  macro-ns# (ns-name (or (:ns outer-fn-meta#) *ns*))
-                 macro-eval-fn# (partial eval-fn macro-ns# macro-break-line# outer-fn-symbol# project# trace# signal-val# return-val# cached-cont-val# locals-fn# cont-fn#)
+                 macro-eval-fn# (partial eval-fn macro-ns# macro-break-line# outer-fn-symbol# trace# signal-val# return-val# cached-cont-val# locals-fn# cont-fn#)
                  macro-read-fn# (partial read-fn signal-val#)
                  macro-prompt-fn# (partial prompt-fn outer-fn-symbol# macro-break-line# signal-val#)]
              (println "\nBreak from:" outer-fn-path# "(type \"(help)\" for help)")
@@ -73,6 +65,6 @@
         break-line (:line (meta &form))]
   `(try
     (do ~@body)
-    (catch Exception ~'e
+    (catch Throwable ~'e
       (break {:break-line ~break-line :env ~env :exception ~'e})))))
 

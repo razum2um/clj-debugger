@@ -1,5 +1,6 @@
 (ns debugger.repl
-  (:require [debugger.config :refer :all]
+  (:require [clojure.pprint :refer [pprint]]
+            [debugger.config :refer :all]
             [debugger.formatter :refer [non-std-trace-element?]]
             [debugger.commands :refer [help-message
                                        print-full-source
@@ -10,7 +11,7 @@
   (if-not @signal-val
     (printf "%s:%s=> " fn-symbol break-line)))
 
-(defn eval-fn [break-ns break-line fn-symbol project trace signal-val return-val cached-cont-val locals-fn cont-fn form]
+(defn eval-fn [break-ns break-line fn-symbol trace signal-val return-val cached-cont-val locals-fn cont-fn form]
   (do
     (condp re-find (clojure.string/trim (str form))
       #"\(h\)|\(help\)" (do
@@ -25,11 +26,10 @@
 
       #"\(l\)|\(locals\)" (do
                             (binding [*print-length* *locals-print-length*]
-                              (clojure.pprint/pprint (locals-fn))))
+                              (pprint (locals-fn))))
 
       #"\(c\)|\(continue\)" (do
                               ;; break one more time
-                              (swap! *skip* #(assoc % fn-symbol 1))
                               (reset! signal-val :stream-end)
                               (reset! cached-cont-val (cont-fn)))
 
@@ -39,12 +39,6 @@
       #"\(wtf\?+\)" (do
                       (print-trace trace)
                       (println))
-
-      #"\(skip \d+\)" (do
-                        (reset! signal-val :stream-end)
-                        (swap! *skip* #(assoc % fn-symbol (+ (% fn-symbol)
-                                                                  (Integer. (re-find #"\d+" (str form))))))
-                        nil)
 
       #"\(q\)|\(quit\)" (do
                           (reset! signal-val :stream-end)
