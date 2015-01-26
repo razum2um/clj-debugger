@@ -1,10 +1,11 @@
 (ns debugger.core
-  (:require [debugger.config :refer :all]
+  (:require [clj-time.core :as t]
+            [debugger.config :refer :all]
             [debugger.formatter :refer [deanonimize-name
                                         demunge
                                         safe-find-var
                                         no-sources-found]]
-            [debugger.commands :refer [print-short-source]]
+            [debugger.commands :refer [print-short-source print-trace]]
             [debugger.repl :refer [prompt-fn read-fn eval-fn caught-fn]]))
 
 (defmacro dbg
@@ -23,8 +24,12 @@
                        (map #(.getClassName %))
                        (some #(re-find #"\$read_eval_print_" %)))]
 
-       (if (or *break-outside-repl* repl?#)
+       (if (and (or *break-outside-repl* repl?#)
+                (->> (t/now) (t/interval @*last-quit-at*) t/in-seconds (< *skip-repl-if-last-quit-ago*)))
          (do
+           (when-let [e# (:exception ~@body)]
+             (-> e# .getMessage println)
+             (-> e# .getStackTrace print-trace))
            (let [macro-break-line# (or (:break-line ~@body) ~break-line 1)
                  cont-fn# #(identity (or (:exception ~@body) ~@body))
                  locals-fn# #(identity (or (:env ~@body) ~env))
@@ -34,8 +39,7 @@
                  signal-val# (atom nil)
 
                  project-dir# (-> (java.io.File. ".") .getCanonicalPath)
-                 path-to-src# (or ~(first (:source-paths (project)))
-                                  (str project-dir# "/src"))
+                 path-to-src# (str project-dir# "/src")
                  outer-fn-meta# (-> outer-fn-symbol# safe-find-var meta)
                  outer-fn-path# (if outer-fn-meta#
                                   (str path-to-src# "/" (:file outer-fn-meta#) ":" (:line outer-fn-meta#))

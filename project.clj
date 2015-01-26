@@ -1,4 +1,4 @@
-(defproject debugger "0.1.3"
+(defproject debugger "0.1.4"
   :description "Debugger fro Clojure"
   :url "https://github.com/razum2um/clj-debugger"
   :license {:name "Eclipse Public License"
@@ -6,7 +6,8 @@
   :dependencies [
                  [org.clojure/clojure "1.6.0"]
                  ;; [org.clojure/clojure "1.7.0-master-SNAPSHOT"]
-                 [leiningen "2.5.0"]
+                 [clj-time "0.9.0"]
+                 ;; [leiningen "2.5.0"]
                  ;; [lein-ubersource "0.1.1"]
                  ;; [org.bitbucket.mstrobel/procyon-compilertools "0.5.27"]
                  ;; [slothcfg "1.0.1"]

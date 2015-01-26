@@ -13,8 +13,9 @@
   (print-table-left-align
     [:cmd :long :help]
     [{:cmd "(h)"  :long "(help)"      :help "prints this help"}
-     {:cmd ""     :long "(wtf)"       :help "prints short code of breakpointed function"}
-     {:cmd ""     :long "(wtf??)"     :help "prints full code of breakpointed function"}
+     {:cmd ""     :long "(wtf)"       :help "prints short stacktrace"}
+     {:cmd ""     :long "(wtf??)"     :help "prints full stacktrace"}
+     {:cmd ""     :long "(whereami)"  :help "prints full code of breakpointed function"}
      {:cmd "(l)"  :long "(locals)"    :help "prints locals"}
      {:cmd "(c)"  :long "(continue)"  :help "continues execution, preserves the result and will break here again"}
      {:cmd ""     :long "(skip 3)"    :help "skips next 3 breakpoints in this place"}
@@ -55,6 +56,7 @@
   ([filter-fn trace]
    (print-stack-table
      (->> trace
+          seq
           (mapv (fn [i s] [i s]) (range))
           (filter filter-fn)
           (map (fn [[i s]] [(str "[" i "]")

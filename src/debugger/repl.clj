@@ -1,5 +1,7 @@
 (ns debugger.repl
   (:require [clojure.pprint :refer [pprint]]
+            [clj-time.core :as t]
+            [clojure.string :as s]
             [debugger.config :refer :all]
             [debugger.formatter :refer [non-std-trace-element?]]
             [debugger.commands :refer [help-message
@@ -42,11 +44,13 @@
 
       #"\(q\)|\(quit\)" (do
                           (reset! signal-val :stream-end)
+                          (reset! *last-quit-at* (t/now))
                           (println "Quitting debugger..."))
 
       ;; TODO: require & use from ns + in *ns*
       (do
         ;; break one more time
+        (println)
         (reset!
           return-val
           (let [orig-ns (ns-name *ns*)]
@@ -74,12 +78,13 @@
 (defn caught-fn [e]
   (println "> Start caught-fn")
   (let [ex (clojure.main/repl-exception e)
-        tr (.getStackTrace ex)
-        el (when-not (zero? (count tr)) (aget tr 0))]
+        tr (.getStackTrace ex)]
     (binding [*out* *err*]
       (println (str (-> ex class .getSimpleName)
                     " " (.getMessage ex) " "
                     (when-not (instance? clojure.lang.Compiler$CompilerException ex)
-                      (str " " (if el (clojure.main/stack-element-str el) "[trace missing]"))))))))
+                      (str " " (if (not-empty tr)
+                                 (print-trace tr)
+                                 "[trace missing]"))))))))
 
 

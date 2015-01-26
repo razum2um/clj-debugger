@@ -1,12 +1,10 @@
 (ns debugger.config
-  ;; (:require [leiningen.core.project :as lein])
-  )
+  (:require [clj-time.core :as t]))
 
 (declare ^:dynamic *locals*)
 (def ^:dynamic *break-outside-repl* false)
 (def ^:dynamic *code-context-lines* 5)
 (def ^:dynamic *locals-print-length* 10)
-
-(defn- project* [] (lein/read (str (-> (java.io.File. ".") .getCanonicalPath) "/project.clj")))
-(def project (memoize project*))
+(def ^:dynamic *skip-repl-if-last-quit-ago* 2)
+(def ^:dynamic *last-quit-at* (atom (t/minus (t/now) (t/seconds *skip-repl-if-last-quit-ago*))))
 
