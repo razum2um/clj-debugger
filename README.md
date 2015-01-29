@@ -181,6 +181,11 @@ Exit foo with 43
 nil
 ```
 
+## TODO
+
+- `(step)`, `(up)`, `(down)` stack manipulation
+- multithreaded berakpoint, switch over breakpointed threads
+
 ## Acknoledgements
 
 - @richhickey for `clojure.main/repl`
