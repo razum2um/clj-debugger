@@ -1,12 +1,12 @@
 # Debugger
 
-The missing tool in the ecosystem
+The missing tool in Clojure the ecosystem.
 
 ## Usage
 
 [![Clojars Project](http://clojars.org/debugger/latest-version.svg)](http://clojars.org/debugger)
 
-```
+```clj
 (use 'debugger.core)
 
 (break (some-fn))
@@ -70,7 +70,7 @@ debugger.core-test/foo:21=> z
 
 ## Return value control
 
-Use any non-nil value to fake inner result
+Use any non-nil value to fake inner result:
 
 ```
 user=> (debugger.core-test/foo)
@@ -188,12 +188,12 @@ nil
 
 ## Acknoledgements
 
-- @richhickey for `clojure.main/repl`
-- @GeorgeJahad for the lesson [how to preserve locals](https://github.com/GeorgeJahad/debug-repl/blob/master/src/alex_and_georges/debug_repl.clj#L68)
+- [@richhickey](http://github.com/richhichey) for `clojure.main/repl`
+- [@GeorgeJahad](http://github.com/GeorgeJahad) for the lesson [how to preserve locals](https://github.com/GeorgeJahad/debug-repl/blob/master/src/alex_and_georges/debug_repl.clj#L68)
 
 ## License
 
-Copyright © 2014 Vlad Bokov
+Copyright © 2014-2015 Vlad Bokov
 
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.
