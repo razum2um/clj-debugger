@@ -1,5 +1,5 @@
 (ns debugger.config
-  (:require [clj-time.core :as t]))
+  (:require [debugger.time :as t]))
 
 (declare ^:dynamic *locals*)
 (def ^:dynamic *break-outside-repl* false)

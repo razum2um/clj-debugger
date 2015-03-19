@@ -1,5 +1,5 @@
 (ns debugger.core
-  (:require [clj-time.core :as t]
+  (:require [debugger.time :as t]
             [debugger.config :refer :all]
             [debugger.formatter :refer [deanonimize-name
                                         demunge
