@@ -1,6 +1,6 @@
 (ns debugger.repl
   (:require [clojure.pprint :refer [pprint]]
-            [clj-time.core :as t]
+            [debugger.time :as t]
             [clojure.string :as s]
             [debugger.config :refer :all]
             [debugger.formatter :refer [non-std-trace-element?]]
