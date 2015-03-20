@@ -49,7 +49,8 @@
       :else
         (do
           (println)
-          (println (clojure.string/join "\n" (filter some? lines)) "\n")))))
+          (println (clojure.string/join "\n" (filter #(not (nil? %)) lines))
+                   "\n")))))
 
 (defn print-trace
   ([trace] (print-trace (constantly true) trace))

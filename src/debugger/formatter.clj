@@ -47,7 +47,7 @@
      (fn [width] (str "%-" width "s"))]))
 
 (defn format-line-with-line-numbers [short? break-line line-number line]
-  {:pre (some? break-line)}
+  {:pre (not (nil? break-line))}
   (cond
     (= break-line line-number) (str "=> " line-number ": " line)
     (and short? (<= line-number (- break-line *code-context-lines*))) nil
@@ -75,7 +75,7 @@
 
 
 (defn fn-try [f & args]
-  (if (some? (first args))
+  (if (not (nil? (first args)))
     (apply f args)
     nil))
 
