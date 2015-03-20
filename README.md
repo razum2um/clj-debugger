@@ -191,6 +191,17 @@ nil
 - [@richhickey](http://github.com/richhichey) for `clojure.main/repl`
 - [@GeorgeJahad](http://github.com/GeorgeJahad) for the lesson [how to preserve locals](https://github.com/GeorgeJahad/debug-repl/blob/master/src/alex_and_georges/debug_repl.clj#L68)
 
+## YourKit
+
+<img src="http://www.yourkit.com/images/yklogo.png"></img>
+
+YourKit has given an open source license for their profiler, greatly simplifying the profiling of ClojureScript performance.
+
+YourKit supports open source projects with its full-featured Java Profiler.
+YourKit, LLC is the creator of <a href="http://www.yourkit.com/java/profiler/index.jsp">YourKit Java Profiler</a>
+and <a href="http://www.yourkit.com/.net/profiler/index.jsp">YourKit .NET Profiler</a>,
+innovative and intelligent tools for profiling Java and .NET applications.
+
 ## License
 
 Copyright © 2014-2015 Vlad Bokov
