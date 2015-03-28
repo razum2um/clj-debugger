@@ -1,4 +1,4 @@
-(defproject debugger "0.1.6-SNAPSHOT"
+(defproject debugger "0.1.7-SNAPSHOT"
   :description "Debugger for Clojure"
   :url "https://github.com/razum2um/clj-debugger"
   :license {:name "Eclipse Public License"
