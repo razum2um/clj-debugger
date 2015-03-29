@@ -6,7 +6,14 @@
                                         safe-find-var
                                         no-sources-found]]
             [debugger.commands :refer [print-short-source print-trace]]
-            [debugger.repl :refer [prompt-fn read-fn eval-fn caught-fn]]))
+            [debugger.repl :refer [prompt-fn read-fn eval-fn caught-fn]])
+  (:import [clojure.lang Compiler$LocalBinding]))
+
+(defn- sanitize-env
+  [env]
+  (into {} (for [[sym bind] env
+                 :when (instance? Compiler$LocalBinding bind)]
+             [`(quote ~sym) (.sym bind)])))
 
 (defmacro dbg
   [x]
@@ -16,7 +23,7 @@
        x#)))
 
 (defmacro break [& body]
-  (let [env (into {} (map (fn [[sym bind]] [`(quote ~sym) (.sym bind)]) &env))
+  (let [env (sanitize-env &env)
         break-line (:line (meta &form))]
     `(let [trace# (-> (Throwable.) .getStackTrace seq)
            outer-fn-symbol# (-> trace# first .getClassName demunge deanonimize-name symbol)
@@ -65,7 +72,7 @@
 
 
 (defmacro break-catch [& body]
-  (let [env (into {} (map (fn [[sym bind]] [`(quote ~sym) (.sym bind)]) &env))
+  (let [env (sanitize-env &env)
         break-line (:line (meta &form))]
   `(try
     (do ~@body)
