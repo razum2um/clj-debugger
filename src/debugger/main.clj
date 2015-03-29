@@ -1,5 +1,5 @@
 (ns debugger.main
-  (:use [debugger core])
+  (:require [debugger.core :refer :all])
   (:gen-class))
 
 ;; `lein run -m debugger.main 1 2` shouldn't stop in debugger
