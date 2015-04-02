@@ -1,6 +1,6 @@
 # Debugger
 
-The missing tool in Clojure the ecosystem.
+The missing tool in the Clojure ecosystem.
 
 ## Usage
 
@@ -184,7 +184,7 @@ nil
 ## TODO
 
 - `(step)`, `(up)`, `(down)` stack manipulation
-- multithreaded berakpoint, switch over breakpointed threads
+- multithreaded breakpoint, switch over breakpointed threads
 
 ## Acknoledgements
 
