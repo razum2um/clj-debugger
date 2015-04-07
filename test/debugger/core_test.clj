@@ -3,10 +3,6 @@
             [clojure.walk :refer [postwalk-demo]]
             [debugger.core :refer :all]))
 
-(deftest a-test
-  (testing "FIXME, I fail."
-    (is (= 1 1))))
-
 (def wow 1)
 
 (defn foo [& args]

@@ -1,5 +1,4 @@
 (ns debugger.commands
-  (:use debugger.config)
   (:require [debugger.config :refer :all]
             [debugger.formatter :refer [safe-find-var
                                         no-sources-found

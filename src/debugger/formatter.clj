@@ -54,13 +54,15 @@
     (and short? (>= line-number (+ break-line *code-context-lines*))) nil
     :else (str "   " line-number ": " line)))
 
-(defn deanonimize-name [^String s]
+(defn deanonimize-name
   "Inner qualified names `debugger.core-test/err/fn--4248` -> no source found"
+  [^String s]
   (clojure.string/join "/" (take 2 (clojure.string/split s #"/"))))
 
 
-(defn safe-find-var [sym]
+(defn safe-find-var
   "No raise of not found ns of symbol"
+  [sym]
   (and (-> sym namespace symbol find-ns)
        (-> sym find-var)))
 
