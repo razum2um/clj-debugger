@@ -186,7 +186,7 @@ nil
 - `(step)`, `(up)`, `(down)` stack manipulation
 - multithreaded breakpoint, switch over breakpointed threads
 
-## Acknoledgements
+## Acknowledgements
 
 - [@richhickey](http://github.com/richhichey) for `clojure.main/repl`
 - [@GeorgeJahad](http://github.com/GeorgeJahad) for the lesson [how to preserve locals](https://github.com/GeorgeJahad/debug-repl/blob/master/src/alex_and_georges/debug_repl.clj#L68)
