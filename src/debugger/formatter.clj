@@ -63,7 +63,7 @@
 (defn safe-find-var
   "No raise of not found ns of symbol"
   [sym]
-  (and (-> sym namespace symbol find-ns)
+  (and (some-> sym namespace symbol find-ns)
        (-> sym find-var)))
 
 
