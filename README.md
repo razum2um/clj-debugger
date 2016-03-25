@@ -212,6 +212,17 @@ nilExit foo with
 user> 
 ```
 
+## Configuration
+
+The following dynamic vars are configurable in `debugger.config`
+
+| Var | Default Value | Use |
+| ---| --- | --- |
+| `*break-outside-repl*` | `true` | Break in non-repl threads. Default value was  `false` in versions prior to 0.1.9. |           
+| `*code-context-lines*` | 5 | Number of lines to include when showing source. |
+| `*locals-print-length*` | 10 | Print-length for locals inside the debugger.   |
+| `*skip-repl-if-last-quit-ago*` |2 | Number of seconds to wait after a debugger is quit before starting another one. |
+
 ## TODO
 
 - `(step)`, `(up)`, `(down)` stack manipulation
