@@ -22,6 +22,37 @@
        (println '~x "->" x#)
        x#)))
 
+
+(def ^{:private true} registered-breakpoints (atom []))
+
+(defn register-breakpoint
+  [breakpoint-fn]
+  (swap! registered-breakpoints conj breakpoint-fn))
+
+(defn deregister-breakpoint
+  [breakpoint-fn]
+  (swap! registered-breakpoints #(into [] (remove #{breakpoint-fn} %))))
+
+(defn breakpoints
+  []
+  (if (empty? @registered-breakpoints)
+    (println "No registered breakpoints found.")
+    (println "Breakpoints:"))
+  (doall
+   (map-indexed
+    (fn [i bp]
+      (println (str i ") " bp)))
+    @registered-breakpoints))
+  nil)
+
+(defn connect
+  "Connect to a given breakpoint. Connects to first breakpoint if no argument specified"
+  ([] (connect 0))
+  ([n]
+   (if (>= n (count @registered-breakpoints))
+     (println "Invalid breakpoint number" (str n ".") "There are" (count @registered-breakpoints) "registered breakpoints.")
+     ((nth @registered-breakpoints n)))))
+
 (defmacro break [& body]
   (let [env (sanitize-env &env)
         break-line (:line (meta &form))]
@@ -55,20 +86,34 @@
                  macro-ns# (ns-name (or (:ns outer-fn-meta#) *ns*))
                  macro-eval-fn# (partial eval-fn macro-ns# macro-break-line# outer-fn-symbol# trace# signal-val# return-val# cached-cont-val# locals-fn# cont-fn#)
                  macro-read-fn# (partial read-fn signal-val#)
-                 macro-prompt-fn# (partial prompt-fn outer-fn-symbol# macro-break-line# signal-val#)]
-             (println "\nBreak from:" outer-fn-path# "(type \"(help)\" for help)")
-             (print-short-source macro-break-line# outer-fn-symbol#)
-             (clojure.main/repl
-               :prompt macro-prompt-fn#
-               :eval macro-eval-fn#
-               :read macro-read-fn#
-               :caught caught-fn)
-             (or
-               (deref return-val#)
-               (deref cached-cont-val#)
-               (cont-fn#))))
-         ;; not repl or skip
-         (do ~@body)))))
+                 macro-prompt-fn# (partial prompt-fn outer-fn-symbol# macro-break-line# signal-val#)
+                 return# (promise)]
+             (letfn [(breakpoint-fn# []
+                       (println "\nBreak from:" outer-fn-path# "(type \"(help)\" for help)")
+                       (print-short-source macro-break-line# outer-fn-symbol#)
+                       (clojure.main/repl
+                        :prompt macro-prompt-fn#
+                        :eval macro-eval-fn#
+                        :read macro-read-fn#
+                        :caught caught-fn)
+                       (deregister-breakpoint breakpoint-fn#)
+                       (deliver return# (or
+                                         (deref return-val#)
+                                         (deref cached-cont-val#)
+                                         (cont-fn#)))
+                       nil)]
+               
+               
+               (register-breakpoint breakpoint-fn#)
+               ;; If we're in the repl, execute immediately
+               (if repl?#
+                 (breakpoint-fn#)
+                 (println "Registered breakpoint:" (str breakpoint-fn# ".")
+                          "\nType (breakpoints) to see a list of registered breakpoint, and (connect) to connect to one.")
+                 )
+               (deref return#))))
+           ;; not repl or skip
+           (do ~@body)))))
 
 
 (defmacro break-catch [& body]

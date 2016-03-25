@@ -181,10 +181,51 @@ Exit foo with 43
 nil
 ```
 
+## Breakpoints in threads
+```
+user> (debugger.core-test/in-thread)
+nil
+Registered breakpoint: debugger.core_test$foo$breakpoint__20396__auto____20431@4c18a68e. 
+Type (breakpoints) to see a list of registered breakpoint, and (connect) to connect to one.
+user> (breakpoints)
+Breakpoints:
+0) debugger.core_test$foo$breakpoint__20396__auto____20431@4c18a68e
+nil
+user> (connect)
+
+Break from: /Users/maxim/tmp/clj-debugger/src/debugger/core_test.clj:8 (type "(help)" for help)
+
+   13:         e (fn [] nil)
+   14:         x "world"
+   15:         y '(8 9)
+   16:         z (Object.)
+=> 17:         ret (break (inc 42))]
+   18:     (println "Exit foo with" ret))) 
+
+debugger.core-test/foo:17=> a
+[1 2]
+debugger.core-test/foo:17=> (q)
+Quitting debugger...
+nil
+nilExit foo with 
+[1 2]
+user> 
+```
+
+## Configuration
+
+The following dynamic vars are configurable in `debugger.config`
+
+| Var | Default Value | Use |
+| ---| --- | --- |
+| `*break-outside-repl*` | `true` | Break in non-repl threads. Default value was  `false` in versions prior to 0.1.9. |           
+| `*code-context-lines*` | 5 | Number of lines to include when showing source. |
+| `*locals-print-length*` | 10 | Print-length for locals inside the debugger.   |
+| `*skip-repl-if-last-quit-ago*` |2 | Number of seconds to wait after a debugger is quit before starting another one. |
+
 ## TODO
 
 - `(step)`, `(up)`, `(down)` stack manipulation
-- multithreaded breakpoint, switch over breakpointed threads
 
 ## Acknowledgements
 

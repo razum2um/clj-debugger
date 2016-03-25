@@ -33,3 +33,6 @@
       "Err exited with"
       (break-catch (/ i 0)))))
 
+
+(defn in-thread []
+  (.start (Thread. foo)))
