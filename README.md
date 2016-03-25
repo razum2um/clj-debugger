@@ -218,7 +218,7 @@ The following dynamic vars are configurable in `debugger.config`
 
 | Var | Default Value | Use |
 | ---| --- | --- |
-| `*break-outside-repl*` | `true` | Break in non-repl threads. Default value was  `false` in versions prior to 0.1.9. |           
+| `*break-outside-repl*` | `true` | Break in non-repl threads, since 0.2.0. Default value was  `false` in 0.1.x. |
 | `*code-context-lines*` | 5 | Number of lines to include when showing source. |
 | `*locals-print-length*` | 10 | Print-length for locals inside the debugger.   |
 | `*skip-repl-if-last-quit-ago*` |2 | Number of seconds to wait after a debugger is quit before starting another one. |
@@ -231,6 +231,7 @@ The following dynamic vars are configurable in `debugger.config`
 
 - [@richhickey](http://github.com/richhichey) for `clojure.main/repl`
 - [@GeorgeJahad](http://github.com/GeorgeJahad) for the lesson [how to preserve locals](https://github.com/GeorgeJahad/debug-repl/blob/master/src/alex_and_georges/debug_repl.clj#L68)
+- [@mveytsman](https://github.com/mveytsman) for breakpoints in threads
 
 ## YourKit
 
