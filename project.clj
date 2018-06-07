@@ -5,8 +5,8 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.9.0"]]
   :aliases {"test-all" ["with-profile" "+1.7:+1.8:+1.9" "test"]}
-  :profiles {:test {:dependencies [[eftest "0.5.2"]
-                                   [pjstadig/humane-test-output "0.8.3"]]
+  :profiles {:dev {:dependencies [[eftest "0.5.2"]]}
+             :test {:dependencies [[pjstadig/humane-test-output "0.8.3"]]
                     :injections [(require '[eftest.runner :refer [find-tests run-tests]])
                                  (require 'pjstadig.humane-test-output)
                                  (pjstadig.humane-test-output/activate!)]}
