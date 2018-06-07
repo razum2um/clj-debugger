@@ -2,11 +2,15 @@
 
 [![Build Status](https://travis-ci.org/razum2um/clj-debugger.svg?branch=master)](https://travis-ci.org/razum2um/clj-debugger)
 
-The missing tool in the Clojure ecosystem.
+[![Clojars Project](http://clojars.org/debugger/latest-version.svg)](http://clojars.org/debugger)
+
+The missing tools in the Clojure ecosystem.
+
+- [break/break-catch: interactive breakpoint](#usage)
+- [dbg: debug intermediate expressions](#debug-intermediate-expressions)
+- [dbg-defn/dbg-fn: debug incoming arguments](#debug-incoming-arguments)
 
 ## Usage
-
-[![Clojars Project](http://clojars.org/debugger/latest-version.svg)](http://clojars.org/debugger)
 
 ```clj
 (use 'debugger.core)
@@ -16,7 +20,7 @@ The missing tool in the Clojure ecosystem.
 (break-catch (some-raising-fn))
 ```
 
-## Breakpoints
+### Breakpoints
 
 ```
 user=> (dotimes [n 5] (debugger.core-test/foo n))
@@ -31,7 +35,7 @@ Break from: /Users/razum2um/Code/debugger/src/debugger/core_test.clj:12 (type "(
    22:     (println "Exit foo with" ret)))
 ```
 
-## Interactive help
+### Interactive help
 
 ```
 debugger.core-test/qux:31=> (h)
@@ -52,7 +56,7 @@ debugger.core-test/qux:31=> (h)
 nil
 ```
 
-## Locals access
+### Locals access
 
 ```
 debugger.core-test/foo:21=> (l)
@@ -70,7 +74,7 @@ debugger.core-test/foo:21=> z
 #<Object java.lang.Object@3dc76ae9>
 ```
 
-## Return value control
+### Return value control
 
 Use any non-nil value to fake inner result:
 
@@ -92,7 +96,7 @@ debugger.core-test/foo:21=> Exit foo with 1       ;; used result from REPL
 nil
 ```
 
-## Code expection
+### Code expection
 
 ```
 debugger.core-test/foo:21=> (whereami)
@@ -112,7 +116,7 @@ debugger.core-test/foo:21=> (whereami)
 nil
 ```
 
-## Stack expection
+### Stack expection
 
 ```
 debugger.core-test/foo:21=> (wtf??)
@@ -146,7 +150,7 @@ nil
 
 ```
 
-## Break on next `(break)` or skip it
+### Break on next `(break)` or skip it
 
 ```
 debugger.core-test/foo:21=> (c)
@@ -183,7 +187,7 @@ Exit foo with 43
 nil
 ```
 
-## Breakpoints in threads
+### Breakpoints in threads
 ```
 user> (debugger.core-test/in-thread)
 nil
@@ -214,7 +218,7 @@ nilExit foo with
 user> 
 ```
 
-## Configuration
+### Configuration
 
 The following dynamic vars are configurable in `debugger.config`
 
@@ -225,9 +229,28 @@ The following dynamic vars are configurable in `debugger.config`
 | `*locals-print-length*` | 10 | Print-length for locals inside the debugger.   |
 | `*skip-repl-if-last-quit-ago*` |2 | Number of seconds to wait after a debugger is quit before starting another one. |
 
-## TODO
+### TODO
 
 - `(step)`, `(up)`, `(down)` stack manipulation
+
+## Debug intermediate expressions
+
+```clojure
+user=> (-> 2 (+ 3) (* 4) dbg (/ 5))
+(* (+ 2 3) 4) -> 20
+4
+```
+
+## Debug incoming arguments
+
+```clojure
+user=> (dbg-defn f1 [arg1 arg2] (+ arg1 arg2))
+#'user/f1
+
+user=> (f1 2 3)
+{arg1 2, arg2 3}
+5
+```
 
 ## Acknowledgements
 
