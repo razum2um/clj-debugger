@@ -1,0 +1,5 @@
+language: clojure
+script: lein test-all
+cache:
+  directories:
+  - $HOME/.m2
