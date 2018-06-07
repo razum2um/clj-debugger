@@ -1,6 +1,7 @@
 (ns debugger.core
   (:require [debugger.time :as t]
             [debugger.config :refer :all]
+            [debugger.debug-args :as debug-args]
             [debugger.formatter :refer [deanonimize-name
                                         demunge
                                         safe-find-var
@@ -124,3 +125,7 @@
     (catch Throwable ~'e
       (break {:break-line ~break-line :env ~env :exception ~'e})))))
 
+;; re-export
+
+(defmacro dbg-defn [& body] `(debug-args/dbg-defn ~@body))
+(defmacro dbg-fn [& body] `(debug-args/dbg-fn ~@body))
