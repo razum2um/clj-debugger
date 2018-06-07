@@ -1,25 +1,31 @@
 (ns debugger.time-test
   (:import java.util.Date)
-  (:require [debugger.time :refer :all]
+  (:require [debugger.time :as time]
             [clojure.test :refer :all]))
 
-(deftest now-test
-  (is (= (.getTime (Date.)) (.getTime (now)))))
+(def date (Date.))
+(defmacro stubbing-time-deftest [name & body]
+  `(deftest ~name
+     (with-redefs [time/now (fn [] ~date)]
+       (do ~@body))))
+
+(stubbing-time-deftest now-test
+  (is (= (.getTime date) (.getTime (time/now)))))
 
 
-(deftest minus-test
-  (is (= (-> (Date.).getTime (- 2000) (Date.) .getTime)
-         (-> (now) (minus (seconds 2)) .getTime))))
+(stubbing-time-deftest minus-test
+  (is (= (-> date .getTime (- 2000) (Date.) .getTime)
+         (-> (time/now) (time/minus (seconds 2)) .getTime))))
 
-(deftest interval-test
-  (is (= 4 (-> (now)
-               (minus (seconds 4))
-               (interval (now))
-               (in-seconds)))))
+(stubbing-time-deftest interval-test
+  (is (= 4 (-> (time/now)
+               (time/minus (time/seconds 4))
+               (time/interval (now))
+               (time/in-seconds)))))
 
-(deftest compatibility-test
+(stubbing-time-deftest compatibility-test
   (are [last-quit-seconds-ago skip-repl-if-last-quit-ago check]
-    (is (= check (->> (now) (interval (minus (now) (seconds last-quit-seconds-ago))) in-seconds (< skip-repl-if-last-quit-ago))))
+    (is (= check (->> (time/now) (time/interval (time/minus (time/now) (time/seconds last-quit-seconds-ago))) in-seconds (< skip-repl-if-last-quit-ago))))
     4 2 true
     3 2 true
     2 2 false
