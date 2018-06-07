@@ -1,5 +1,7 @@
 # Debugger
 
+[![Build Status](https://travis-ci.org/razum2um/clj-debugger.svg?branch=master)](https://travis-ci.org/razum2um/clj-debugger)
+
 The missing tool in the Clojure ecosystem.
 
 ## Usage
